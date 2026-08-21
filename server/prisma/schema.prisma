@@ -1,0 +1,353 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USERS & ROLES
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(STAFF)
+  isActive     Boolean  @default(true)
+  lastLogin    DateTime?
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  inventoryTransactions InventoryTransaction[]
+  stockAdjustments      StockAdjustment[]
+  purchaseOrders        PurchaseOrder[]
+  sales                 Sale[]
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  WAREHOUSE_STAFF
+  ACCOUNTANT
+  SALES_STAFF
+  STAFF
+}
+
+// ─────────────────────────────────────────────
+// CATEGORIES
+// ─────────────────────────────────────────────
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  color       String?    @default("#6366f1")
+  icon        String?
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIERS
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id            String    @id @default(cuid())
+  name          String
+  company       String?
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  city          String?
+  state         String?
+  pincode       String?
+  gstNumber     String?
+  panNumber     String?
+  paymentTerms  String?
+  bankName      String?
+  accountNumber String?
+  ifscCode      String?
+  isActive      Boolean   @default(true)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  products       Product[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// ─────────────────────────────────────────────
+// COATING TYPES (Dynamic)
+// ─────────────────────────────────────────────
+
+model CoatingType {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  products  Product[]
+
+  @@map("coating_types")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCTS
+// ─────────────────────────────────────────────
+
+model Product {
+  id             String      @id @default(cuid())
+  name           String
+  sku            String?     @unique
+  partNumber     String?
+  description    String?
+  specifications String?
+  categoryId     String?
+  category       Category?   @relation(fields: [categoryId], references: [id])
+  company        String?     // Manufacturer / Brand
+  supplierId     String?
+  supplier       Supplier?   @relation(fields: [supplierId], references: [id])
+  location       String?     // Shelf No.
+  price          Decimal     @default(0) @db.Decimal(12, 2)
+  purchasePrice  Decimal     @default(0) @db.Decimal(12, 2)
+  gstPercent     Decimal     @default(18) @db.Decimal(5, 2)
+  minStock       Int         @default(0)
+  currentStock   Int         @default(0)
+  unit           String      @default("pcs")
+  productImage   String?     // Cloudinary URL
+  designImage    String?     // Cloudinary URL
+  coatingTypeId  String?
+  coatingType    CoatingType? @relation(fields: [coatingTypeId], references: [id])
+  barcode        String?
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  inventoryTransactions InventoryTransaction[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  saleItems             SaleItem[]
+  stockAdjustments      StockAdjustment[]
+
+  @@map("products")
+}
+
+// ─────────────────────────────────────────────
+// INVENTORY TRANSACTIONS (Core Audit Trail)
+// ─────────────────────────────────────────────
+
+enum TransactionType {
+  PURCHASE
+  SALE
+  RETURN_IN
+  RETURN_OUT
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  TRANSFER_IN
+  TRANSFER_OUT
+  DAMAGE
+  EXPIRED
+  OPENING_STOCK
+}
+
+model InventoryTransaction {
+  id               String          @id @default(cuid())
+  productId        String
+  product          Product         @relation(fields: [productId], references: [id])
+  transactionType  TransactionType
+  quantity         Int
+  previousStock    Int
+  newStock         Int
+  unitCost         Decimal?        @db.Decimal(12, 2)
+  referenceType    String?         // "PURCHASE_ORDER" | "SALE" | "ADJUSTMENT"
+  referenceId      String?
+  notes            String?
+  createdById      String?
+  createdBy        User?           @relation(fields: [createdById], references: [id])
+  createdAt        DateTime        @default(now())
+
+  @@map("inventory_transactions")
+}
+
+// ─────────────────────────────────────────────
+// STOCK ADJUSTMENTS
+// ─────────────────────────────────────────────
+
+model StockAdjustment {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  type        String   // "INCREASE" | "DECREASE"
+  quantity    Int
+  reason      String
+  notes       String?
+  adjustedById String?
+  adjustedBy  User?    @relation(fields: [adjustedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@map("stock_adjustments")
+}
+
+// ─────────────────────────────────────────────
+// PURCHASE ORDERS
+// ─────────────────────────────────────────────
+
+enum PurchaseOrderStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  poNumber     String              @unique
+  supplierId   String
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  status       PurchaseOrderStatus @default(DRAFT)
+  orderDate    DateTime            @default(now())
+  expectedDate DateTime?
+  receivedDate DateTime?
+  subtotal     Decimal             @default(0) @db.Decimal(12, 2)
+  gstAmount    Decimal             @default(0) @db.Decimal(12, 2)
+  totalAmount  Decimal             @default(0) @db.Decimal(12, 2)
+  notes        String?
+  createdById  String?
+  createdBy    User?               @relation(fields: [createdById], references: [id])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  items        PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  orderedQty       Int
+  receivedQty      Int           @default(0)
+  unitPrice        Decimal       @db.Decimal(12, 2)
+  totalPrice       Decimal       @db.Decimal(12, 2)
+
+  @@map("purchase_order_items")
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMERS
+// ─────────────────────────────────────────────
+
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  company       String?
+  phone         String?
+  email         String?
+  address       String?
+  gstNumber     String?
+  creditLimit   Decimal  @default(0) @db.Decimal(12, 2)
+  outstandingAmt Decimal @default(0) @db.Decimal(12, 2)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sales         Sale[]
+
+  @@map("customers")
+}
+
+// ─────────────────────────────────────────────
+// SALES
+// ─────────────────────────────────────────────
+
+enum SaleStatus {
+  DRAFT
+  CONFIRMED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+model Sale {
+  id           String     @id @default(cuid())
+  saleNumber   String     @unique
+  customerId   String?
+  customer     Customer?  @relation(fields: [customerId], references: [id])
+  status       SaleStatus @default(DRAFT)
+  saleDate     DateTime   @default(now())
+  subtotal     Decimal    @default(0) @db.Decimal(12, 2)
+  gstAmount    Decimal    @default(0) @db.Decimal(12, 2)
+  discount     Decimal    @default(0) @db.Decimal(12, 2)
+  totalAmount  Decimal    @default(0) @db.Decimal(12, 2)
+  paidAmount   Decimal    @default(0) @db.Decimal(12, 2)
+  notes        String?
+  createdById  String?
+  createdBy    User?      @relation(fields: [createdById], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  items        SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id         String  @id @default(cuid())
+  saleId     String
+  sale       Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(12, 2)
+  gstPercent Decimal @db.Decimal(5, 2)
+  totalPrice Decimal @db.Decimal(12, 2)
+
+  @@map("sale_items")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  resource   String   // products, categories, etc.
+  resourceId String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
