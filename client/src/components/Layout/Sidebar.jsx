@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, Tags, Truck, ShoppingCart, TrendingUp,
   Users, FileText, BarChart2, Settings, ChevronLeft, ChevronRight,
   Layers, AlertTriangle, ArrowLeftRight, UserCheck, ClipboardList,
-  History
+  History, Fingerprint, Wifi, UsersRound, MonitorSmartphone
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,6 +42,15 @@ const navItems = [
     section: 'Reports',
     items: [
       { label: 'Reports', path: '/reports', icon: BarChart2 },
+    ],
+  },
+  {
+    section: 'Attendance',
+    items: [
+      { label: 'Live Dashboard', path: '/attendance', icon: Fingerprint },
+      { label: 'Report', path: '/attendance/report', icon: FileText },
+      { label: 'Employees', path: '/attendance/employees', icon: UsersRound },
+      { label: 'Devices', path: '/attendance/devices', icon: MonitorSmartphone },
     ],
   },
   {

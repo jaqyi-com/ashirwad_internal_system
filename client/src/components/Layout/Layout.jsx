@@ -17,6 +17,11 @@ const PAGE_TITLES = {
   '/users': { title: 'User Management', subtitle: 'Manage team access and roles' },
   '/audit': { title: 'Audit Logs', subtitle: 'System activity and change history' },
   '/settings': { title: 'Settings', subtitle: 'Configure your system' },
+  '/attendance': { title: 'Attendance', subtitle: 'Live punch feed for today' },
+  '/attendance/report': { title: 'Attendance Report', subtitle: 'Date-range attendance analysis' },
+  '/attendance/employees': { title: 'Employees', subtitle: 'Employees registered on biometric device' },
+  '/attendance/devices': { title: 'Device Settings', subtitle: 'Manage CP Plus attendance devices' },
+
 };
 
 export default function Layout() {

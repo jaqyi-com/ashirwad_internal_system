@@ -18,6 +18,10 @@ import Reports from './pages/Reports/Reports';
 import Users from './pages/Users/Users';
 import Settings from './pages/Settings';
 import Audit from './pages/Audit';
+import AttendanceDashboard from './pages/Attendance/AttendanceDashboard';
+import AttendanceReport from './pages/Attendance/AttendanceReport';
+import Employees from './pages/Attendance/Employees';
+import DeviceSettings from './pages/Attendance/DeviceSettings';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuthStore();
@@ -58,6 +62,10 @@ export default function App() {
           <Route path="users" element={<Users />} />
           <Route path="audit" element={<Audit />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="attendance" element={<AttendanceDashboard />} />
+          <Route path="attendance/report" element={<AttendanceReport />} />
+          <Route path="attendance/employees" element={<Employees />} />
+          <Route path="attendance/devices" element={<DeviceSettings />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

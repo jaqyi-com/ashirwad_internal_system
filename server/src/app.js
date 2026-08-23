@@ -19,7 +19,8 @@ const userRoutes = require('./routes/user.routes');
 const customerRoutes = require('./routes/customer.routes');
 const coatingRoutes = require('./routes/coating.routes');
 const adjustmentRoutes = require('./routes/adjustment.routes');
-const auditRoutes = require('./routes/audit.routes');
+const auditRoutes      = require('./routes/audit.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 
@@ -71,6 +72,7 @@ app.use('/api/coatings', coatingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
