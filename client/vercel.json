@@ -13,6 +13,10 @@
     {
       "source": "/uploads/:path*",
       "destination": "https://ashirwad-ims-api.vercel.app/uploads/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
