@@ -1,29 +1,16 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const prisma = require('../config/prisma');
 const { asyncHandler } = require('../middleware/error.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/products');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
-
+// Memory storage — works on Vercel serverless (no local filesystem writes)
+// Images are stored as base64 data URIs in the database.
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per image
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files allowed'), false);
@@ -32,6 +19,10 @@ const upload = multer({
   { name: 'productImage', maxCount: 1 },
   { name: 'designImage', maxCount: 1 },
 ]);
+
+// Convert an in-memory multer file to a base64 data URI
+const toDataUri = (file) =>
+  file ? `data:${file.mimetype};base64,${file.buffer.toString('base64')}` : null;
 
 // GET /api/products
 router.get('/', authenticate, asyncHandler(async (req, res) => {
@@ -104,12 +95,8 @@ router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
 
   if (!name) return res.status(400).json({ error: 'Product name is required.' });
 
-  const productImage = req.files?.productImage?.[0]
-    ? `/uploads/products/${req.files.productImage[0].filename}`
-    : null;
-  const designImage = req.files?.designImage?.[0]
-    ? `/uploads/products/${req.files.designImage[0].filename}`
-    : null;
+  const productImage = toDataUri(req.files?.productImage?.[0]);
+  const designImage  = toDataUri(req.files?.designImage?.[0]);
 
   const product = await prisma.product.create({
     data: {
@@ -166,10 +153,10 @@ router.put('/:id', authenticate, upload, asyncHandler(async (req, res) => {
   } = req.body;
 
   const productImage = req.files?.productImage?.[0]
-    ? `/uploads/products/${req.files.productImage[0].filename}`
+    ? toDataUri(req.files.productImage[0])
     : existing.productImage;
   const designImage = req.files?.designImage?.[0]
-    ? `/uploads/products/${req.files.designImage[0].filename}`
+    ? toDataUri(req.files.designImage[0])
     : existing.designImage;
 
   const product = await prisma.product.update({
