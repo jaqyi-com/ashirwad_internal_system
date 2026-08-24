@@ -168,6 +168,7 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
     name, partNumber, description, specifications,
     categoryId, company, supplierId, location,
     price, purchasePrice, gstPercent,
+    currentStock,
     unit, coatingTypeId, barcode,
   } = req.body;
 
@@ -188,9 +189,25 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
       unit:          unit          || existing.unit,
       coatingTypeId: coatingTypeId !== undefined ? coatingTypeId || null : existing.coatingTypeId,
       barcode:       barcode       !== undefined ? barcode       : existing.barcode,
+      ...(currentStock !== undefined && { currentStock: parseInt(currentStock) }),
     },
     include: { category: true, supplier: true, coatingType: true },
   });
+
+  // Record adjustment transaction if stock changed
+  if (currentStock !== undefined && parseInt(currentStock) !== existing.currentStock) {
+    await prisma.inventoryTransaction.create({
+      data: {
+        productId:       req.params.id,
+        transactionType: 'ADJUSTMENT',
+        quantity:        Math.abs(parseInt(currentStock) - existing.currentStock),
+        previousStock:   existing.currentStock,
+        newStock:        parseInt(currentStock),
+        notes:           'Manual stock edit',
+        createdById:     req.user.id,
+      },
+    });
+  }
 
   res.json(product);
 }));
