@@ -139,36 +139,58 @@ export default function Products() {
     e.preventDefault();
     setSaving(true);
     try {
-      const fd = new FormData();
       const finalGst = useCustomGst ? form.customGst : form.gstPercent;
 
-      Object.entries({ ...form, gstPercent: finalGst }).forEach(([k, v]) => {
-        if (k !== 'customGst' && v !== undefined && v !== null) fd.append(k, v);
-      });
+      // Step 1: Save metadata as plain JSON (no multipart — always works through Vercel proxy)
+      const payload = {
+        name:           form.name,
+        partNumber:     form.partNumber     || null,
+        description:    form.description    || null,
+        specifications: form.specifications || null,
+        categoryId:     form.categoryId     || null,
+        company:        form.company        || null,
+        supplierId:     form.supplierId     || null,
+        location:       form.location       || null,
+        price:          form.price,
+        purchasePrice:  form.purchasePrice,
+        gstPercent:     finalGst,
+        currentStock:   form.currentStock,
+        unit:           form.unit,
+        coatingTypeId:  form.coatingTypeId  || null,
+        barcode:        form.barcode        || null,
+      };
 
+      let savedProduct;
       if (editProduct) {
-        // Send only the small index arrays — never send existing base64 back
+        const { data } = await api.put(`/products/${editProduct.id}`, payload);
+        savedProduct = data;
+      } else {
+        const { data } = await api.post('/products', payload);
+        savedProduct = data;
+      }
+
+      // Step 2: Handle image changes via separate FormData POST (only when needed)
+      const hasRemovals = removedProductIdxs.size > 0 || removedDesignIdxs.size > 0;
+      const hasNewFiles = newProductFiles.length > 0   || newDesignFiles.length > 0;
+
+      if (hasRemovals || hasNewFiles) {
+        const fd = new FormData();
         fd.append('removeProductImageIndices', JSON.stringify([...removedProductIdxs]));
         fd.append('removeDesignImageIndices',  JSON.stringify([...removedDesignIdxs]));
+        newProductFiles.forEach(({ file }) => fd.append('productImages', file));
+        newDesignFiles.forEach(({ file })  => fd.append('designImages', file));
+        await api.post(`/products/${savedProduct.id}/images`, fd);
       }
 
-      // Attach new files
-      newProductFiles.forEach(({ file }) => fd.append('productImages', file));
-      newDesignFiles.forEach(({ file })  => fd.append('designImages', file));
-
-      if (editProduct) {
-        await api.put(`/products/${editProduct.id}`, fd);
-        toast.success('Product updated!');
-      } else {
-        await api.post('/products', fd);
-        toast.success('Product added!');
-      }
+      toast.success(editProduct ? 'Product updated!' : 'Product added!');
       setShowModal(false);
       load();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error saving product');
+      console.error('Save error:', err?.response?.data || err.message);
+      toast.error(err.response?.data?.error || err.message || 'Error saving product');
     } finally { setSaving(false); }
   };
+
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this product?')) return;
