@@ -9,7 +9,10 @@ const router = express.Router();
 // Memory storage — Vercel serverless compatible (no local filesystem)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per file
+  limits: {
+    fileSize:  5  * 1024 * 1024,  // 5 MB per image file
+    fieldSize: 10 * 1024 * 1024,  // 10 MB for text fields (safety margin)
+  },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files allowed'), false);
@@ -19,19 +22,29 @@ const upload = multer({
   { name: 'designImages',  maxCount: 10 },
 ]);
 
-// Convert multer file(s) to base64 data URI array
+// Convert multer files to base64 data URI array
 const toDataUris = (files) =>
   (files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
 
+// Safely parse a JSON integer-index array from a form field string
+const parseIndexArray = (val) => {
+  if (!val) return [];
+  try {
+    const p = JSON.parse(val);
+    return Array.isArray(p) ? p.filter(x => Number.isInteger(x)) : [];
+  } catch { return []; }
+};
+
+// ─────────────────────────────────────────────
 // GET /api/products
+// ─────────────────────────────────────────────
 router.get('/', authenticate, asyncHandler(async (req, res) => {
-  const { search, categoryId, supplierId, lowStock, page = 1, limit = 20 } = req.query;
+  const { search, categoryId, supplierId, page = 1, limit = 20 } = req.query;
 
   const where = { isActive: true };
   if (search) {
     where.OR = [
       { name:       { contains: search, mode: 'insensitive' } },
-      { sku:        { contains: search, mode: 'insensitive' } },
       { partNumber: { contains: search, mode: 'insensitive' } },
       { company:    { contains: search, mode: 'insensitive' } },
     ];
@@ -54,7 +67,9 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   res.json({ products, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
 }));
 
+// ─────────────────────────────────────────────
 // GET /api/products/low-stock
+// ─────────────────────────────────────────────
 router.get('/low-stock', authenticate, asyncHandler(async (req, res) => {
   const products = await prisma.$queryRaw`
     SELECT p.*, c.name as category_name, s.name as supplier_name
@@ -68,7 +83,9 @@ router.get('/low-stock', authenticate, asyncHandler(async (req, res) => {
   res.json(products);
 }));
 
+// ─────────────────────────────────────────────
 // GET /api/products/:id
+// ─────────────────────────────────────────────
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   const product = await prisma.product.findUnique({
     where: { id: req.params.id },
@@ -83,28 +100,25 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   res.json(product);
 }));
 
-// POST /api/products
+// ─────────────────────────────────────────────
+// POST /api/products  (create)
+// ─────────────────────────────────────────────
 router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
   const {
-    name, sku, partNumber, description, specifications,
+    name, partNumber, description, specifications,
     categoryId, company, supplierId, location, price, purchasePrice,
-    gstPercent, minStock, currentStock, unit, coatingTypeId, barcode,
-    existingProductImages, existingDesignImages,
+    gstPercent, currentStock, unit, coatingTypeId, barcode,
   } = req.body;
 
-  if (!name) return res.status(400).json({ error: 'Product name is required.' });
+  if (!name?.trim()) return res.status(400).json({ error: 'Product name is required.' });
 
-  // Merge any pre-existing images (passed as JSON) with newly uploaded ones
-  const prevProductImages = parseJsonArray(existingProductImages);
-  const prevDesignImages  = parseJsonArray(existingDesignImages);
-
-  const productImages = [...prevProductImages, ...toDataUris(req.files?.productImages)];
-  const designImages  = [...prevDesignImages,  ...toDataUris(req.files?.designImages)];
+  // Only newly uploaded files — no existing images on create
+  const productImages = toDataUris(req.files?.productImages);
+  const designImages  = toDataUris(req.files?.designImages);
 
   const product = await prisma.product.create({
     data: {
-      name,
-      sku:           sku           || null,
+      name:          name.trim(),
       partNumber:    partNumber    || null,
       description:   description   || null,
       specifications: specifications || null,
@@ -115,7 +129,7 @@ router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
       price:         parseFloat(price)         || 0,
       purchasePrice: parseFloat(purchasePrice) || 0,
       gstPercent:    parseFloat(gstPercent)    || 18,
-      minStock:      parseInt(minStock)        || 0,
+      minStock:      0,
       currentStock:  parseInt(currentStock)   || 0,
       unit:          unit || 'pcs',
       productImages,
@@ -126,17 +140,17 @@ router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
     include: { category: true, supplier: true, coatingType: true },
   });
 
-  // Record opening stock transaction
+  // Record opening stock transaction if stock > 0
   if (parseInt(currentStock) > 0) {
     await prisma.inventoryTransaction.create({
       data: {
-        productId: product.id,
+        productId:       product.id,
         transactionType: 'OPENING_STOCK',
-        quantity: parseInt(currentStock),
-        previousStock: 0,
-        newStock: parseInt(currentStock),
-        notes: 'Opening stock on product creation',
-        createdById: req.user.id,
+        quantity:        parseInt(currentStock),
+        previousStock:   0,
+        newStock:        parseInt(currentStock),
+        notes:           'Opening stock on product creation',
+        createdById:     req.user.id,
       },
     });
   }
@@ -144,30 +158,41 @@ router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
   res.status(201).json(product);
 }));
 
-// PUT /api/products/:id
+// ─────────────────────────────────────────────
+// PUT /api/products/:id  (update)
+// Strategy for images:
+//   - Frontend sends removeProductImageIndices / removeDesignImageIndices
+//     as JSON arrays of integer indices to delete from the existing array.
+//   - Never sends back full base64 image data (avoids Vercel 4.5 MB body limit).
+//   - New uploads are appended after the kept images.
+// ─────────────────────────────────────────────
 router.put('/:id', authenticate, upload, asyncHandler(async (req, res) => {
   const existing = await prisma.product.findUnique({ where: { id: req.params.id } });
   if (!existing) return res.status(404).json({ error: 'Product not found.' });
 
   const {
-    name, sku, partNumber, description, specifications,
+    name, partNumber, description, specifications,
     categoryId, company, supplierId, location, price, purchasePrice,
-    gstPercent, minStock, unit, coatingTypeId, barcode,
-    existingProductImages, existingDesignImages,
+    gstPercent, unit, coatingTypeId, barcode,
+    removeProductImageIndices,
+    removeDesignImageIndices,
   } = req.body;
 
-  // Combine kept existing images + newly uploaded ones
-  const prevProductImages = parseJsonArray(existingProductImages) ?? existing.productImages;
-  const prevDesignImages  = parseJsonArray(existingDesignImages)  ?? existing.designImages;
+  // Filter out removed indices from existing arrays
+  const removePIdx = parseIndexArray(removeProductImageIndices);
+  const removeDIdx = parseIndexArray(removeDesignImageIndices);
 
-  const productImages = [...prevProductImages, ...toDataUris(req.files?.productImages)];
-  const designImages  = [...prevDesignImages,  ...toDataUris(req.files?.designImages)];
+  const keptProductImages = (existing.productImages || []).filter((_, i) => !removePIdx.includes(i));
+  const keptDesignImages  = (existing.designImages  || []).filter((_, i) => !removeDIdx.includes(i));
+
+  // Append newly uploaded files
+  const productImages = [...keptProductImages, ...toDataUris(req.files?.productImages)];
+  const designImages  = [...keptDesignImages,  ...toDataUris(req.files?.designImages)];
 
   const product = await prisma.product.update({
     where: { id: req.params.id },
     data: {
-      name:          name          || existing.name,
-      sku:           sku  !== undefined ? sku  || null : existing.sku,
+      name:          name?.trim()    || existing.name,
       partNumber:    partNumber    !== undefined ? partNumber    || null : existing.partNumber,
       description:   description   !== undefined ? description   : existing.description,
       specifications: specifications !== undefined ? specifications : existing.specifications,
@@ -178,7 +203,6 @@ router.put('/:id', authenticate, upload, asyncHandler(async (req, res) => {
       price:         price         !== undefined ? parseFloat(price)         : existing.price,
       purchasePrice: purchasePrice !== undefined ? parseFloat(purchasePrice) : existing.purchasePrice,
       gstPercent:    gstPercent    !== undefined ? parseFloat(gstPercent)    : existing.gstPercent,
-      minStock:      minStock      !== undefined ? parseInt(minStock)        : existing.minStock,
       unit:          unit          || existing.unit,
       productImages,
       designImages,
@@ -191,17 +215,12 @@ router.put('/:id', authenticate, upload, asyncHandler(async (req, res) => {
   res.json(product);
 }));
 
-// DELETE /api/products/:id (soft delete)
+// ─────────────────────────────────────────────
+// DELETE /api/products/:id  (soft delete)
+// ─────────────────────────────────────────────
 router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
   await prisma.product.update({ where: { id: req.params.id }, data: { isActive: false } });
   res.json({ message: 'Product deleted.' });
 }));
-
-// Helper: safely parse JSON array from form data string
-function parseJsonArray(val) {
-  if (!val) return null;
-  try { const p = JSON.parse(val); return Array.isArray(p) ? p : null; }
-  catch { return null; }
-}
 
 module.exports = router;

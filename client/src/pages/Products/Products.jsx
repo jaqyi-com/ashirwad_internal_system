@@ -2,16 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
 import { formatCurrency, formatNumber, getStockStatus, GST_SLABS } from '../../utils/helpers';
 import {
-  Plus, Search, Edit2, Trash2, X, Package,
-  Eye, ImagePlus,
+  Plus, Search, Edit2, Trash2, X, Package, Eye, ImagePlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProductDetailModal from './ProductDetailModal';
 
 const INITIAL_FORM = {
   name: '', partNumber: '', description: '', specifications: '',
-  categoryId: '', company: '', supplierId: '', location: '0',
-  price: '0', purchasePrice: '0', gstPercent: '18', minStock: '0',
+  categoryId: '', company: '', supplierId: '', location: '',
+  price: '0', purchasePrice: '0', gstPercent: '18',
   currentStock: '0', unit: 'pcs', coatingTypeId: '', barcode: '',
   customGst: '',
 };
@@ -28,11 +27,14 @@ export default function Products() {
   const [editProduct, setEditProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [form, setForm]               = useState(INITIAL_FORM);
-  // Multiple images: arrays of { file, preview } for new uploads + existing strings
-  const [productImages, setProductImages] = useState([]); // existing base64 strings
-  const [designImages, setDesignImages]   = useState([]);
+
+  // Image state — track NEW files + which EXISTING indices to remove
+  // (we never send existing base64 data back to server — avoids body size limits)
+  const [removedProductIdxs, setRemovedProductIdxs] = useState(new Set());
+  const [removedDesignIdxs,  setRemovedDesignIdxs]  = useState(new Set());
   const [newProductFiles, setNewProductFiles] = useState([]); // { file, preview }
-  const [newDesignFiles, setNewDesignFiles]   = useState([]);
+  const [newDesignFiles,  setNewDesignFiles]  = useState([]); // { file, preview }
+
   const [saving, setSaving]           = useState(false);
   const [page, setPage]               = useState(1);
   const [useCustomGst, setUseCustomGst] = useState(false);
@@ -40,6 +42,7 @@ export default function Products() {
   const productImgRef = useRef();
   const designImgRef  = useRef();
 
+  // ─── Data loading ────────────────────────────
   const load = async () => {
     setLoading(true);
     try {
@@ -64,9 +67,12 @@ export default function Products() {
   useEffect(() => { load(); }, [search, page, filterCategory]);
   useEffect(() => { loadMeta(); }, []);
 
+  // ─── Modal helpers ───────────────────────────
   const resetImageState = () => {
-    setProductImages([]); setDesignImages([]);
-    setNewProductFiles([]); setNewDesignFiles([]);
+    setRemovedProductIdxs(new Set());
+    setRemovedDesignIdxs(new Set());
+    setNewProductFiles([]);
+    setNewDesignFiles([]);
   };
 
   const openAdd = () => {
@@ -82,53 +88,69 @@ export default function Products() {
     const isCustomGst = !GST_SLABS.find(s => s.value === parseFloat(p.gstPercent));
     setUseCustomGst(isCustomGst);
     setForm({
-      name: p.name || '', partNumber: p.partNumber || '',
-      description: p.description || '', specifications: p.specifications || '',
-      categoryId: p.categoryId || '', company: p.company || '',
-      supplierId: p.supplierId || '', location: p.location || '0',
-      price: String(p.price || '0'), purchasePrice: String(p.purchasePrice || '0'),
-      gstPercent: String(p.gstPercent || '18'), minStock: String(p.minStock || '0'),
-      currentStock: String(p.currentStock || '0'), unit: p.unit || 'pcs',
-      coatingTypeId: p.coatingTypeId || '', barcode: p.barcode || '',
-      customGst: isCustomGst ? String(p.gstPercent) : '',
+      name:           p.name          || '',
+      partNumber:     p.partNumber    || '',
+      description:    p.description   || '',
+      specifications: p.specifications || '',
+      categoryId:     p.categoryId    || '',
+      company:        p.company       || '',
+      supplierId:     p.supplierId    || '',
+      location:       p.location      || '',
+      price:          String(p.price          || '0'),
+      purchasePrice:  String(p.purchasePrice  || '0'),
+      gstPercent:     String(p.gstPercent     || '18'),
+      currentStock:   String(p.currentStock   || '0'),
+      unit:           p.unit          || 'pcs',
+      coatingTypeId:  p.coatingTypeId || '',
+      barcode:        p.barcode       || '',
+      customGst:      isCustomGst ? String(p.gstPercent) : '',
     });
-    setProductImages(p.productImages || []);
-    setDesignImages(p.designImages || []);
-    setNewProductFiles([]); setNewDesignFiles([]);
+    resetImageState();
     setShowModal(true);
   };
 
+  // ─── Image management ────────────────────────
   const addFiles = (e, type) => {
     const files = Array.from(e.target.files);
     const items = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
     if (type === 'product') setNewProductFiles(prev => [...prev, ...items]);
     else setNewDesignFiles(prev => [...prev, ...items]);
-    e.target.value = ''; // reset so same file can be re-added
+    e.target.value = '';
   };
 
-  const removeExisting = (idx, type) => {
-    if (type === 'product') setProductImages(prev => prev.filter((_, i) => i !== idx));
-    else setDesignImages(prev => prev.filter((_, i) => i !== idx));
+  const removeExistingImg = (idx, type) => {
+    if (type === 'product') setRemovedProductIdxs(prev => new Set([...prev, idx]));
+    else setRemovedDesignIdxs(prev => new Set([...prev, idx]));
   };
 
-  const removeNew = (idx, type) => {
+  const removeNewImg = (idx, type) => {
     if (type === 'product') setNewProductFiles(prev => prev.filter((_, i) => i !== idx));
     else setNewDesignFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Current visible existing images (excluding removed)
+  const visibleProductImgs = (editProduct?.productImages || []).filter((_, i) => !removedProductIdxs.has(i));
+  const visibleDesignImgs  = (editProduct?.designImages  || []).filter((_, i) => !removedDesignIdxs.has(i));
+  const totalProductImgs   = visibleProductImgs.length + newProductFiles.length;
+  const totalDesignImgs    = visibleDesignImgs.length  + newDesignFiles.length;
+
+  // ─── Submit ──────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       const fd = new FormData();
       const finalGst = useCustomGst ? form.customGst : form.gstPercent;
+
       Object.entries({ ...form, gstPercent: finalGst }).forEach(([k, v]) => {
-        if (k !== 'customGst' && v !== '') fd.append(k, v);
+        if (k !== 'customGst' && v !== undefined && v !== null) fd.append(k, v);
       });
 
-      // Pass existing images as JSON so backend knows which to keep
-      fd.append('existingProductImages', JSON.stringify(productImages));
-      fd.append('existingDesignImages',  JSON.stringify(designImages));
+      if (editProduct) {
+        // Send only the small index arrays — never send existing base64 back
+        fd.append('removeProductImageIndices', JSON.stringify([...removedProductIdxs]));
+        fd.append('removeDesignImageIndices',  JSON.stringify([...removedDesignIdxs]));
+      }
 
       // Attach new files
       newProductFiles.forEach(({ file }) => fd.append('productImages', file));
@@ -154,13 +176,14 @@ export default function Products() {
     catch { toast.error('Error deleting product'); }
   };
 
+  // ─── Render ───────────────────────────────────
   return (
     <div>
       {/* Toolbar */}
       <div className="products-toolbar">
         <div className="search-bar" style={{ flex: 1, minWidth: 200 }}>
           <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input placeholder="Search products, SKU, part number..." value={search}
+          <input placeholder="Search products, part number..." value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <select className="form-select" value={filterCategory}
@@ -228,7 +251,6 @@ export default function Products() {
                           <div style={{ fontWeight: 600 }}>{p.name}</div>
                           {p.company && <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.company}</div>}
                           {p.coatingType && <span className="badge badge-blue" style={{ marginTop: 2 }}>{p.coatingType.name}</span>}
-                          {/* Show img count badge */}
                           {((p.productImages?.length || 0) + (p.designImages?.length || 0)) > 0 && (
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 4 }}>
                               📷 {(p.productImages?.length || 0) + (p.designImages?.length || 0)}
@@ -255,15 +277,9 @@ export default function Products() {
                     <td className="hide-mobile"><span className={`badge ${status.className}`}>{status.label}</span></td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setDetailProduct(p)} title="View">
-                          <Eye size={14} />
-                        </button>
-                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => openEdit(p)} title="Edit">
-                          <Edit2 size={14} />
-                        </button>
-                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p.id)} title="Delete">
-                          <Trash2 size={14} />
-                        </button>
+                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setDetailProduct(p)} title="View"><Eye size={14} /></button>
+                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => openEdit(p)} title="Edit"><Edit2 size={14} /></button>
+                        <button className="btn btn-danger btn-sm btn-icon" onClick={() => handleDelete(p.id)} title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -294,15 +310,13 @@ export default function Products() {
         />
       )}
 
-      {/* Add/Edit Modal */}
+      {/* Add / Edit Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal modal-lg">
             <div className="modal-header">
               <h2>{editProduct ? 'Edit Product' : 'Add Product'}</h2>
-              <button className="btn btn-secondary btn-icon btn-sm" onClick={() => setShowModal(false)}>
-                <X size={16} />
-              </button>
+              <button className="btn btn-secondary btn-icon btn-sm" onClick={() => setShowModal(false)}><X size={16} /></button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -313,29 +327,37 @@ export default function Products() {
                   <div className="grid-2" style={{ gap: 12 }}>
                     <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                       <label className="form-label">Product Name <span>*</span></label>
-                      <input className="form-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Enter product name" required />
+                      <input className="form-input" value={form.name}
+                        onChange={e => setForm({ ...form, name: e.target.value })}
+                        placeholder="Enter product name" required />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Category</label>
-                      <select className="form-select" value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })}>
+                      <select className="form-select" value={form.categoryId}
+                        onChange={e => setForm({ ...form, categoryId: e.target.value })}>
                         <option value="">Select Category</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Company / Brand</label>
-                      <input className="form-input" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Manufacturer or brand" />
+                      <input className="form-input" value={form.company}
+                        onChange={e => setForm({ ...form, company: e.target.value })}
+                        placeholder="Manufacturer or brand" />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Supplier</label>
-                      <select className="form-select" value={form.supplierId} onChange={e => setForm({ ...form, supplierId: e.target.value })}>
+                      <select className="form-select" value={form.supplierId}
+                        onChange={e => setForm({ ...form, supplierId: e.target.value })}>
                         <option value="">Select Supplier</option>
                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Location (Shelf No.)</label>
-                      <input className="form-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. A-12, Shelf 3" />
+                      <input className="form-input" value={form.location}
+                        onChange={e => setForm({ ...form, location: e.target.value })}
+                        placeholder="e.g. A-12, Shelf 3" />
                     </div>
                   </div>
                 </Section>
@@ -345,11 +367,14 @@ export default function Products() {
                   <div className="grid-2" style={{ gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">Part Number</label>
-                      <input className="form-input mono" value={form.partNumber} onChange={e => setForm({ ...form, partNumber: e.target.value })} placeholder="Manufacturer part number" />
+                      <input className="form-input mono" value={form.partNumber}
+                        onChange={e => setForm({ ...form, partNumber: e.target.value })}
+                        placeholder="Manufacturer part number" />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Unit</label>
-                      <select className="form-select" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}>
+                      <select className="form-select" value={form.unit}
+                        onChange={e => setForm({ ...form, unit: e.target.value })}>
                         {['pcs', 'kg', 'g', 'litre', 'ml', 'meter', 'cm', 'box', 'set', 'pair', 'roll'].map(u => (
                           <option key={u} value={u}>{u}</option>
                         ))}
@@ -357,28 +382,32 @@ export default function Products() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Barcode</label>
-                      <input className="form-input mono" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} placeholder="Barcode / QR" />
+                      <input className="form-input mono" value={form.barcode}
+                        onChange={e => setForm({ ...form, barcode: e.target.value })}
+                        placeholder="Barcode / QR value" />
                     </div>
                   </div>
                 </Section>
 
-                {/* Pricing */}
+                {/* Pricing & Stock */}
                 <Section title="Pricing & Stock">
                   <div className="grid-3" style={{ gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">Selling Price (₹)</label>
-                      <input type="number" min="0" step="0.01" className="form-input" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                      <input type="number" min="0" step="0.01" className="form-input"
+                        value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Purchase Price (₹)</label>
-                      <input type="number" min="0" step="0.01" className="form-input" value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: e.target.value })} />
+                      <input type="number" min="0" step="0.01" className="form-input"
+                        value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label className="form-label">GST</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <select className="form-select" value={useCustomGst ? 'custom' : form.gstPercent}
                           onChange={e => {
-                            if (e.target.value === 'custom') { setUseCustomGst(true); }
+                            if (e.target.value === 'custom') setUseCustomGst(true);
                             else { setUseCustomGst(false); setForm({ ...form, gstPercent: e.target.value }); }
                           }}>
                           <option value="">Select GST</option>
@@ -394,107 +423,52 @@ export default function Products() {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Current Stock</label>
-                      <input type="number" min="0" className="form-input" value={form.currentStock} onChange={e => setForm({ ...form, currentStock: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Min. Stock (Alert Level)</label>
-                      <input type="number" min="0" className="form-input" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} />
+                      <input type="number" min="0" className="form-input"
+                        value={form.currentStock} onChange={e => setForm({ ...form, currentStock: e.target.value })} />
                     </div>
                   </div>
                 </Section>
 
                 {/* Coating */}
                 <Section title="Coating Info">
-                  <div className="form-group">
-                    <label className="form-label">Choose a Coating Type</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <button type="button" onClick={() => setForm({ ...form, coatingTypeId: '' })}
-                        className={`btn btn-sm ${!form.coatingTypeId ? 'btn-primary' : 'btn-secondary'}`}>None</button>
-                      {coatings.map(c => (
-                        <button key={c.id} type="button" onClick={() => setForm({ ...form, coatingTypeId: c.id })}
-                          className={`btn btn-sm ${form.coatingTypeId === c.id ? 'btn-primary' : 'btn-secondary'}`}>{c.name}</button>
-                      ))}
-                    </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <button type="button" onClick={() => setForm({ ...form, coatingTypeId: '' })}
+                      className={`btn btn-sm ${!form.coatingTypeId ? 'btn-primary' : 'btn-secondary'}`}>None</button>
+                    {coatings.map(c => (
+                      <button key={c.id} type="button" onClick={() => setForm({ ...form, coatingTypeId: c.id })}
+                        className={`btn btn-sm ${form.coatingTypeId === c.id ? 'btn-primary' : 'btn-secondary'}`}>{c.name}</button>
+                    ))}
                   </div>
                 </Section>
 
                 {/* Images */}
                 <Section title="Images">
-                  {/* Product Images */}
-                  <div className="form-group" style={{ marginBottom: 16 }}>
-                    <label className="form-label" style={{ marginBottom: 10 }}>
-                      📷 Product Images
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
-                        ({productImages.length + newProductFiles.length} added, up to 10)
-                      </span>
-                    </label>
-                    <div className="multi-image-grid">
-                      {/* Existing images */}
-                      {productImages.map((src, i) => (
-                        <div key={`ep-${i}`} className="multi-image-item">
-                          <img src={src} alt={`product-${i}`} />
-                          <button type="button" className="multi-image-remove" onClick={() => removeExisting(i, 'product')}>
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ))}
-                      {/* New files */}
-                      {newProductFiles.map(({ preview }, i) => (
-                        <div key={`np-${i}`} className="multi-image-item new">
-                          <img src={preview} alt={`new-product-${i}`} />
-                          <button type="button" className="multi-image-remove" onClick={() => removeNew(i, 'product')}>
-                            <X size={10} />
-                          </button>
-                          <div className="multi-image-new-badge">NEW</div>
-                        </div>
-                      ))}
-                      {/* Add button */}
-                      {(productImages.length + newProductFiles.length) < 10 && (
-                        <div className="multi-image-add" onClick={() => productImgRef.current.click()}>
-                          <ImagePlus size={20} />
-                          <span>Add</span>
-                        </div>
-                      )}
-                    </div>
-                    <input ref={productImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-                      onChange={e => addFiles(e, 'product')} />
-                  </div>
+                  <ImageUploadGrid
+                    label="📷 Product Images"
+                    existingImgs={editProduct?.productImages || []}
+                    removedIdxs={removedProductIdxs}
+                    newFiles={newProductFiles}
+                    onRemoveExisting={idx => removeExistingImg(idx, 'product')}
+                    onRemoveNew={idx => removeNewImg(idx, 'product')}
+                    onAdd={() => productImgRef.current.click()}
+                    total={totalProductImgs}
+                  />
+                  <input ref={productImgRef} type="file" accept="image/*" multiple
+                    style={{ display: 'none' }} onChange={e => addFiles(e, 'product')} />
 
-                  {/* Design Images */}
-                  <div className="form-group">
-                    <label className="form-label" style={{ marginBottom: 10 }}>
-                      🎨 Design Images
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
-                        ({designImages.length + newDesignFiles.length} added, up to 10)
-                      </span>
-                    </label>
-                    <div className="multi-image-grid">
-                      {designImages.map((src, i) => (
-                        <div key={`ed-${i}`} className="multi-image-item">
-                          <img src={src} alt={`design-${i}`} />
-                          <button type="button" className="multi-image-remove" onClick={() => removeExisting(i, 'design')}>
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ))}
-                      {newDesignFiles.map(({ preview }, i) => (
-                        <div key={`nd-${i}`} className="multi-image-item new">
-                          <img src={preview} alt={`new-design-${i}`} />
-                          <button type="button" className="multi-image-remove" onClick={() => removeNew(i, 'design')}>
-                            <X size={10} />
-                          </button>
-                          <div className="multi-image-new-badge">NEW</div>
-                        </div>
-                      ))}
-                      {(designImages.length + newDesignFiles.length) < 10 && (
-                        <div className="multi-image-add" onClick={() => designImgRef.current.click()}>
-                          <ImagePlus size={20} />
-                          <span>Add</span>
-                        </div>
-                      )}
-                    </div>
-                    <input ref={designImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-                      onChange={e => addFiles(e, 'design')} />
+                  <div style={{ marginTop: 14 }}>
+                    <ImageUploadGrid
+                      label="🎨 Design Images"
+                      existingImgs={editProduct?.designImages || []}
+                      removedIdxs={removedDesignIdxs}
+                      newFiles={newDesignFiles}
+                      onRemoveExisting={idx => removeExistingImg(idx, 'design')}
+                      onRemoveNew={idx => removeNewImg(idx, 'design')}
+                      onAdd={() => designImgRef.current.click()}
+                      total={totalDesignImgs}
+                    />
+                    <input ref={designImgRef} type="file" accept="image/*" multiple
+                      style={{ display: 'none' }} onChange={e => addFiles(e, 'design')} />
                   </div>
                 </Section>
 
@@ -520,7 +494,7 @@ export default function Products() {
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : editProduct ? 'Update Product' : 'Add Product'}
+                  {saving ? 'Saving…' : editProduct ? 'Update Product' : 'Add Product'}
                 </button>
               </div>
             </form>
@@ -531,6 +505,8 @@ export default function Products() {
   );
 }
 
+// ─── Helper components ─────────────────────────────────────
+
 function Section({ title, children }) {
   return (
     <div>
@@ -538,6 +514,47 @@ function Section({ title, children }) {
         {title}
       </div>
       {children}
+    </div>
+  );
+}
+
+function ImageUploadGrid({ label, existingImgs, removedIdxs, newFiles, onRemoveExisting, onRemoveNew, onAdd, total }) {
+  return (
+    <div className="form-group">
+      <label className="form-label" style={{ marginBottom: 10 }}>
+        {label}
+        <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
+          ({total} added, up to 10)
+        </span>
+      </label>
+      <div className="multi-image-grid">
+        {/* Existing images from DB */}
+        {existingImgs.map((src, i) => !removedIdxs.has(i) && (
+          <div key={`e-${i}`} className="multi-image-item">
+            <img src={src} alt={`img-${i}`} />
+            <button type="button" className="multi-image-remove" onClick={() => onRemoveExisting(i)}>
+              <X size={10} />
+            </button>
+          </div>
+        ))}
+        {/* New uploads */}
+        {newFiles.map(({ preview }, i) => (
+          <div key={`n-${i}`} className="multi-image-item new">
+            <img src={preview} alt={`new-${i}`} />
+            <button type="button" className="multi-image-remove" onClick={() => onRemoveNew(i)}>
+              <X size={10} />
+            </button>
+            <div className="multi-image-new-badge">NEW</div>
+          </div>
+        ))}
+        {/* Add button */}
+        {total < 10 && (
+          <div className="multi-image-add" onClick={onAdd}>
+            <ImagePlus size={20} />
+            <span>Add</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
