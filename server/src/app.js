@@ -21,6 +21,7 @@ const coatingRoutes = require('./routes/coating.routes');
 const adjustmentRoutes = require('./routes/adjustment.routes');
 const auditRoutes      = require('./routes/audit.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
+const publicRoutes     = require('./routes/public.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 
@@ -73,6 +74,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/public',    publicRoutes);   // No auth — QR scan endpoint
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

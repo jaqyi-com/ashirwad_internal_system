@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { X, Edit2, Package, ChevronLeft, ChevronRight, ZoomIn, Tag, Truck, MapPin, DollarSign, Layers, BarChart2, Calendar, Hash } from 'lucide-react';
+import { X, Edit2, Package, ChevronLeft, ChevronRight, ZoomIn, Tag, Truck, MapPin, DollarSign, Layers, BarChart2, Calendar, Hash, QrCode } from 'lucide-react';
 import { formatCurrency, formatNumber, getStockStatus } from '../../utils/helpers';
+import ProductQR from './ProductQR';
 
 export default function ProductDetailModal({ product, onClose, onEdit }) {
-  const [tab, setTab]               = useState('product'); // 'product' | 'design'
+  const [tab, setTab]               = useState('product'); // 'product' | 'design' | 'qr'
   const [activeIdx, setActiveIdx]   = useState(0);
   const [lightbox, setLightbox]     = useState(false);
 
-  const images = tab === 'product' ? (product.productImages || []) : (product.designImages || []);
+  const images = tab === 'product' ? (product.productImages || []) : (tab === 'design' ? (product.designImages || []) : []);
   const current = images[activeIdx];
 
   const prev = () => setActiveIdx(i => (i - 1 + images.length) % images.length);
@@ -57,10 +58,19 @@ export default function ProductDetailModal({ product, onClose, onEdit }) {
                 >
                   🎨 Design ({(product.designImages || []).length})
                 </button>
+                <button
+                  className={`tab-btn ${tab === 'qr' ? 'active' : ''}`}
+                  onClick={() => switchTab('qr')}
+                  style={{ flex: 1, textAlign: 'center' }}
+                >
+                  <QrCode size={12} style={{ display: 'inline', marginRight: 4 }} />QR
+                </button>
               </div>
 
-              {/* Main image */}
-              {current ? (
+              {/* QR tab */}
+              {tab === 'qr' ? (
+                <ProductQR product={product} />
+              ) : current ? (
                 <div className="gallery-main" onClick={() => setLightbox(true)}>
                   <img src={current} alt={`${product.name} ${tab}`} />
                   <div className="gallery-zoom-hint"><ZoomIn size={16} /> Click to zoom</div>

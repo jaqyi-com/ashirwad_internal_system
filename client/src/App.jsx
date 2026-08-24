@@ -24,6 +24,7 @@ import AttendanceDashboard from './pages/Attendance/AttendanceDashboard';
 import AttendanceReport from './pages/Attendance/AttendanceReport';
 import Employees from './pages/Attendance/Employees';
 import DeviceSettings from './pages/Attendance/DeviceSettings';
+import ProductPublicPage from './pages/Products/ProductPublicPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuthStore();
@@ -75,6 +76,8 @@ export default function App() {
           <Route path="attendance/employees" element={<Employees />} />
           <Route path="attendance/devices" element={<DeviceSettings />} />
         </Route>
+        {/* Public QR scan route — no auth required */}
+        <Route path="/p/:id" element={<ProductPublicPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
