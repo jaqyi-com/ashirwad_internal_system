@@ -63,11 +63,12 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, onClose }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">🏭</div>
@@ -92,6 +93,7 @@ export default function Sidebar() {
                 end={path === '/'}
                 className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
                 title={collapsed ? label : undefined}
+                onClick={onClose}
               >
                 <Icon size={18} />
                 {!collapsed && <span>{label}</span>}

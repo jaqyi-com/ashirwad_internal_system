@@ -137,8 +137,8 @@ model Product {
   minStock       Int         @default(0)
   currentStock   Int         @default(0)
   unit           String      @default("pcs")
-  productImage   String?     // Cloudinary URL
-  designImage    String?     // Cloudinary URL
+  productImages  String[]    // Array of base64 data URIs
+  designImages   String[]    // Array of base64 data URIs
   coatingTypeId  String?
   coatingType    CoatingType? @relation(fields: [coatingTypeId], references: [id])
   barcode        String?

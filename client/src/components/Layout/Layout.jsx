@@ -1,6 +1,8 @@
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
 
 const PAGE_TITLES = {
   '/': { title: 'Dashboard', subtitle: 'Ashirwad Enterprises Inventory Overview' },
@@ -21,16 +23,26 @@ const PAGE_TITLES = {
   '/attendance/report': { title: 'Attendance Report', subtitle: 'Date-range attendance analysis' },
   '/attendance/employees': { title: 'Employees', subtitle: 'Employees registered on biometric device' },
   '/attendance/devices': { title: 'Device Settings', subtitle: 'Manage CP Plus attendance devices' },
-
 };
 
 export default function Layout() {
   const { pathname } = useLocation();
   const page = PAGE_TITLES[pathname] || { title: 'Ashirwad IMS', subtitle: '' };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="layout">
-      <Sidebar />
+    <div className="layout app-layout">
+      {/* Mobile hamburger */}
+      <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(o => !o)}>
+        <Menu size={20} />
+      </button>
+
+      {/* Overlay (mobile) */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'mobile-open' : ''}`} onClick={closeSidebar} />
+
+      <Sidebar mobileOpen={sidebarOpen} onClose={closeSidebar} />
       <div className="main-content">
         <Header title={page.title} subtitle={page.subtitle} />
         <div className="page-content">
@@ -40,3 +52,4 @@ export default function Layout() {
     </div>
   );
 }
+

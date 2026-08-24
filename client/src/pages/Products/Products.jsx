@@ -2,40 +2,43 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
 import { formatCurrency, formatNumber, getStockStatus, GST_SLABS } from '../../utils/helpers';
 import {
-  Plus, Search, Edit2, Trash2, X, Upload, Package, ChevronDown,
-  Eye, Filter, MoreVertical
+  Plus, Search, Edit2, Trash2, X, Package,
+  Eye, ImagePlus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ProductDetailModal from './ProductDetailModal';
 
 const INITIAL_FORM = {
   name: '', sku: '', partNumber: '', description: '', specifications: '',
-  categoryId: '', company: '', supplierId: 'ashirwad-default', location: '0',
+  categoryId: '', company: '', supplierId: '', location: '0',
   price: '0', purchasePrice: '0', gstPercent: '18', minStock: '0',
   currentStock: '0', unit: 'pcs', coatingTypeId: '', barcode: '',
   customGst: '',
 };
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [coatings, setCoatings] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const [products, setProducts]       = useState([]);
+  const [total, setTotal]             = useState(0);
+  const [loading, setLoading]         = useState(true);
+  const [search, setSearch]           = useState('');
+  const [categories, setCategories]   = useState([]);
+  const [suppliers, setSuppliers]     = useState([]);
+  const [coatings, setCoatings]       = useState([]);
+  const [showModal, setShowModal]     = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [productImageFile, setProductImageFile] = useState(null);
-  const [designImageFile, setDesignImageFile] = useState(null);
-  const [productImagePreview, setProductImagePreview] = useState(null);
-  const [designImagePreview, setDesignImagePreview] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
+  const [detailProduct, setDetailProduct] = useState(null);
+  const [form, setForm]               = useState(INITIAL_FORM);
+  // Multiple images: arrays of { file, preview } for new uploads + existing strings
+  const [productImages, setProductImages] = useState([]); // existing base64 strings
+  const [designImages, setDesignImages]   = useState([]);
+  const [newProductFiles, setNewProductFiles] = useState([]); // { file, preview }
+  const [newDesignFiles, setNewDesignFiles]   = useState([]);
+  const [saving, setSaving]           = useState(false);
+  const [page, setPage]               = useState(1);
   const [useCustomGst, setUseCustomGst] = useState(false);
   const [filterCategory, setFilterCategory] = useState('');
   const productImgRef = useRef();
-  const designImgRef = useRef();
+  const designImgRef  = useRef();
 
   const load = async () => {
     setLoading(true);
@@ -51,9 +54,7 @@ export default function Products() {
 
   const loadMeta = async () => {
     const [catRes, supRes, coatRes] = await Promise.all([
-      api.get('/categories'),
-      api.get('/suppliers'),
-      api.get('/coatings'),
+      api.get('/categories'), api.get('/suppliers'), api.get('/coatings'),
     ]);
     setCategories(catRes.data);
     setSuppliers(supRes.data);
@@ -63,11 +64,15 @@ export default function Products() {
   useEffect(() => { load(); }, [search, page, filterCategory]);
   useEffect(() => { loadMeta(); }, []);
 
+  const resetImageState = () => {
+    setProductImages([]); setDesignImages([]);
+    setNewProductFiles([]); setNewDesignFiles([]);
+  };
+
   const openAdd = () => {
     setEditProduct(null);
     setForm(INITIAL_FORM);
-    setProductImageFile(null); setDesignImageFile(null);
-    setProductImagePreview(null); setDesignImagePreview(null);
+    resetImageState();
     setUseCustomGst(false);
     setShowModal(true);
   };
@@ -77,37 +82,38 @@ export default function Products() {
     const isCustomGst = !GST_SLABS.find(s => s.value === parseFloat(p.gstPercent));
     setUseCustomGst(isCustomGst);
     setForm({
-      name: p.name || '',
-      sku: p.sku || '',
-      partNumber: p.partNumber || '',
-      description: p.description || '',
-      specifications: p.specifications || '',
-      categoryId: p.categoryId || '',
-      company: p.company || '',
-      supplierId: p.supplierId || '',
-      location: p.location || '0',
-      price: String(p.price || '0'),
-      purchasePrice: String(p.purchasePrice || '0'),
-      gstPercent: String(p.gstPercent || '18'),
-      minStock: String(p.minStock || '0'),
-      currentStock: String(p.currentStock || '0'),
-      unit: p.unit || 'pcs',
-      coatingTypeId: p.coatingTypeId || '',
-      barcode: p.barcode || '',
+      name: p.name || '', sku: p.sku || '', partNumber: p.partNumber || '',
+      description: p.description || '', specifications: p.specifications || '',
+      categoryId: p.categoryId || '', company: p.company || '',
+      supplierId: p.supplierId || '', location: p.location || '0',
+      price: String(p.price || '0'), purchasePrice: String(p.purchasePrice || '0'),
+      gstPercent: String(p.gstPercent || '18'), minStock: String(p.minStock || '0'),
+      currentStock: String(p.currentStock || '0'), unit: p.unit || 'pcs',
+      coatingTypeId: p.coatingTypeId || '', barcode: p.barcode || '',
       customGst: isCustomGst ? String(p.gstPercent) : '',
     });
-    setProductImagePreview(p.productImage ? `/uploads/products/${p.productImage.split('/').pop()}` : null);
-    setDesignImagePreview(p.designImage ? `/uploads/products/${p.designImage.split('/').pop()}` : null);
-    setProductImageFile(null); setDesignImageFile(null);
+    setProductImages(p.productImages || []);
+    setDesignImages(p.designImages || []);
+    setNewProductFiles([]); setNewDesignFiles([]);
     setShowModal(true);
   };
 
-  const handleFileChange = (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (type === 'product') { setProductImageFile(file); setProductImagePreview(url); }
-    else { setDesignImageFile(file); setDesignImagePreview(url); }
+  const addFiles = (e, type) => {
+    const files = Array.from(e.target.files);
+    const items = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+    if (type === 'product') setNewProductFiles(prev => [...prev, ...items]);
+    else setNewDesignFiles(prev => [...prev, ...items]);
+    e.target.value = ''; // reset so same file can be re-added
+  };
+
+  const removeExisting = (idx, type) => {
+    if (type === 'product') setProductImages(prev => prev.filter((_, i) => i !== idx));
+    else setDesignImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeNew = (idx, type) => {
+    if (type === 'product') setNewProductFiles(prev => prev.filter((_, i) => i !== idx));
+    else setNewDesignFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (e) => {
@@ -119,8 +125,14 @@ export default function Products() {
       Object.entries({ ...form, gstPercent: finalGst }).forEach(([k, v]) => {
         if (k !== 'customGst' && v !== '') fd.append(k, v);
       });
-      if (productImageFile) fd.append('productImage', productImageFile);
-      if (designImageFile) fd.append('designImage', designImageFile);
+
+      // Pass existing images as JSON so backend knows which to keep
+      fd.append('existingProductImages', JSON.stringify(productImages));
+      fd.append('existingDesignImages',  JSON.stringify(designImages));
+
+      // Attach new files
+      newProductFiles.forEach(({ file }) => fd.append('productImages', file));
+      newDesignFiles.forEach(({ file })  => fd.append('designImages', file));
 
       if (editProduct) {
         await api.put(`/products/${editProduct.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -138,44 +150,31 @@ export default function Products() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this product?')) return;
-    try {
-      await api.delete(`/products/${id}`);
-      toast.success('Product deleted');
-      load();
-    } catch { toast.error('Error deleting product'); }
+    try { await api.delete(`/products/${id}`); toast.success('Product deleted'); load(); }
+    catch { toast.error('Error deleting product'); }
   };
 
   return (
     <div>
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="products-toolbar">
         <div className="search-bar" style={{ flex: 1, minWidth: 200 }}>
           <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input
-            placeholder="Search products, SKU, part number..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
+          <input placeholder="Search products, SKU, part number..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
-
-        <select
-          className="form-select"
-          style={{ width: 180 }}
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-        >
+        <select className="form-select" value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}>
           <option value="">All Categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-
         <button className="btn btn-primary" onClick={openAdd}>
           <Plus size={16} /> Add Product
         </button>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, fontSize: '13px', color: 'var(--text-secondary)' }}>
-        <span>{formatNumber(total)} products</span>
+      <div style={{ marginBottom: 16, fontSize: '13px', color: 'var(--text-secondary)' }}>
+        {formatNumber(total)} products
       </div>
 
       {/* Table */}
@@ -199,71 +198,67 @@ export default function Products() {
             <thead>
               <tr>
                 <th>Product</th>
-                <th>SKU / Part No.</th>
-                <th>Category</th>
-                <th>Supplier</th>
-                <th>Location</th>
+                <th className="hide-mobile">SKU / Part No.</th>
+                <th className="hide-mobile">Category</th>
+                <th className="hide-tablet">Supplier</th>
+                <th className="hide-tablet">Location</th>
                 <th>Price (₹)</th>
-                <th>GST</th>
+                <th className="hide-mobile">GST</th>
                 <th>Stock</th>
-                <th>Status</th>
+                <th className="hide-mobile">Status</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {products.map((p) => {
                 const status = getStockStatus(p.currentStock, p.minStock);
+                const thumb = p.productImages?.[0] || p.designImages?.[0];
                 return (
-                  <tr key={p.id}>
+                  <tr key={p.id} className="product-row" onClick={() => setDetailProduct(p)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {p.productImage ? (
-                          <img
-                            src={p.productImage}
-                            alt={p.name}
-                            style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)' }}
-                          />
+                        {thumb ? (
+                          <img src={thumb} alt={p.name} className="product-thumb" />
                         ) : (
-                          <div style={{
-                            width: 36, height: 36, borderRadius: 8,
-                            background: 'var(--bg-secondary)', display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                          }}>
+                          <div className="product-thumb-placeholder">
                             <Package size={16} style={{ color: 'var(--text-muted)' }} />
                           </div>
                         )}
                         <div>
                           <div style={{ fontWeight: 600 }}>{p.name}</div>
                           {p.company && <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.company}</div>}
-                          {p.coatingType && (
-                            <span className="badge badge-blue" style={{ marginTop: 2 }}>{p.coatingType.name}</span>
+                          {p.coatingType && <span className="badge badge-blue" style={{ marginTop: 2 }}>{p.coatingType.name}</span>}
+                          {/* Show img count badge */}
+                          {((p.productImages?.length || 0) + (p.designImages?.length || 0)) > 0 && (
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 4 }}>
+                              📷 {(p.productImages?.length || 0) + (p.designImages?.length || 0)}
+                            </span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td className="hide-mobile">
                       {p.sku && <div className="mono" style={{ fontSize: '12px' }}>{p.sku}</div>}
                       {p.partNumber && <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>P/N: {p.partNumber}</div>}
                     </td>
-                    <td>
-                      {p.category ? (
-                        <span className="badge badge-blue">{p.category.name}</span>
-                      ) : '—'}
+                    <td className="hide-mobile">
+                      {p.category ? <span className="badge badge-blue">{p.category.name}</span> : '—'}
                     </td>
-                    <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <td className="hide-tablet" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                       {p.supplier?.name || '—'}
                     </td>
-                    <td>
-                      {p.location ? (
-                        <span className="badge badge-gray">📦 {p.location}</span>
-                      ) : '—'}
+                    <td className="hide-tablet">
+                      {p.location ? <span className="badge badge-gray">📦 {p.location}</span> : '—'}
                     </td>
                     <td style={{ fontWeight: 600 }}>{formatCurrency(p.price)}</td>
-                    <td><span className="badge badge-gray">{p.gstPercent}%</span></td>
+                    <td className="hide-mobile"><span className="badge badge-gray">{p.gstPercent}%</span></td>
                     <td style={{ fontWeight: 700, fontSize: '15px' }}>{formatNumber(p.currentStock)}</td>
-                    <td><span className={`badge ${status.className}`}>{status.label}</span></td>
-                    <td>
+                    <td className="hide-mobile"><span className={`badge ${status.className}`}>{status.label}</span></td>
+                    <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setDetailProduct(p)} title="View">
+                          <Eye size={14} />
+                        </button>
                         <button className="btn btn-secondary btn-sm btn-icon" onClick={() => openEdit(p)} title="Edit">
                           <Edit2 size={14} />
                         </button>
@@ -291,6 +286,15 @@ export default function Products() {
         </div>
       )}
 
+      {/* Product Detail Modal */}
+      {detailProduct && (
+        <ProductDetailModal
+          product={detailProduct}
+          onClose={() => setDetailProduct(null)}
+          onEdit={(p) => { setDetailProduct(null); openEdit(p); }}
+        />
+      )}
+
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
@@ -304,11 +308,9 @@ export default function Products() {
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
                 {/* Basic Info */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Basic Information
-                  </div>
+                <Section title="Basic Information">
                   <div className="grid-2" style={{ gap: 12 }}>
                     <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                       <label className="form-label">Product Name <span>*</span></label>
@@ -337,13 +339,10 @@ export default function Products() {
                       <input className="form-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. A-12, Shelf 3" />
                     </div>
                   </div>
-                </div>
+                </Section>
 
-                {/* SKU & Part Number */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Identification
-                  </div>
+                {/* Identification */}
+                <Section title="Identification">
                   <div className="grid-2" style={{ gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">SKU</label>
@@ -366,13 +365,10 @@ export default function Products() {
                       <input className="form-input mono" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} placeholder="Barcode / QR" />
                     </div>
                   </div>
-                </div>
+                </Section>
 
                 {/* Pricing */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Pricing & Stock
-                  </div>
+                <Section title="Pricing & Stock">
                   <div className="grid-3" style={{ gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">Selling Price (₹)</label>
@@ -385,30 +381,19 @@ export default function Products() {
                     <div className="form-group">
                       <label className="form-label">GST</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <select
-                          className="form-select"
-                          value={useCustomGst ? 'custom' : form.gstPercent}
+                        <select className="form-select" value={useCustomGst ? 'custom' : form.gstPercent}
                           onChange={e => {
-                            if (e.target.value === 'custom') {
-                              setUseCustomGst(true);
-                            } else {
-                              setUseCustomGst(false);
-                              setForm({ ...form, gstPercent: e.target.value });
-                            }
-                          }}
-                        >
+                            if (e.target.value === 'custom') { setUseCustomGst(true); }
+                            else { setUseCustomGst(false); setForm({ ...form, gstPercent: e.target.value }); }
+                          }}>
                           <option value="">Select GST</option>
                           {GST_SLABS.map(s => <option key={s.value} value={String(s.value)}>{s.label}</option>)}
                           <option value="custom">Custom %</option>
                         </select>
                         {useCustomGst && (
-                          <input
-                            type="number" min="0" max="100" step="0.1"
-                            className="form-input"
-                            placeholder="Enter custom GST %"
-                            value={form.customGst}
-                            onChange={e => setForm({ ...form, customGst: e.target.value })}
-                          />
+                          <input type="number" min="0" max="100" step="0.1" className="form-input"
+                            placeholder="Enter custom GST %" value={form.customGst}
+                            onChange={e => setForm({ ...form, customGst: e.target.value })} />
                         )}
                       </div>
                     </div>
@@ -421,125 +406,120 @@ export default function Products() {
                       <input type="number" min="0" className="form-input" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} />
                     </div>
                   </div>
-                </div>
+                </Section>
 
-                {/* Coating Info */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Coating Info
-                  </div>
+                {/* Coating */}
+                <Section title="Coating Info">
                   <div className="form-group">
                     <label className="form-label">Choose a Coating Type</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <button
-                        type="button"
-                        onClick={() => setForm({ ...form, coatingTypeId: '' })}
-                        className={`btn btn-sm ${!form.coatingTypeId ? 'btn-primary' : 'btn-secondary'}`}
-                      >
-                        None
-                      </button>
+                      <button type="button" onClick={() => setForm({ ...form, coatingTypeId: '' })}
+                        className={`btn btn-sm ${!form.coatingTypeId ? 'btn-primary' : 'btn-secondary'}`}>None</button>
                       {coatings.map(c => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setForm({ ...form, coatingTypeId: c.id })}
-                          className={`btn btn-sm ${form.coatingTypeId === c.id ? 'btn-primary' : 'btn-secondary'}`}
-                        >
-                          {c.name}
-                        </button>
+                        <button key={c.id} type="button" onClick={() => setForm({ ...form, coatingTypeId: c.id })}
+                          className={`btn btn-sm ${form.coatingTypeId === c.id ? 'btn-primary' : 'btn-secondary'}`}>{c.name}</button>
                       ))}
                     </div>
                   </div>
-                </div>
+                </Section>
 
                 {/* Images */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Images
-                  </div>
-                  <div className="grid-2" style={{ gap: 12 }}>
-                    {/* Product Image */}
-                    <div className="form-group">
-                      <label className="form-label">Product Image</label>
-                      {productImagePreview ? (
-                        <div className="image-preview">
-                          <img src={productImagePreview} alt="Product" />
-                          <button
-                            type="button"
-                            className="image-preview-remove"
-                            onClick={() => { setProductImageFile(null); setProductImagePreview(null); }}
-                          >
-                            <X size={12} />
+                <Section title="Images">
+                  {/* Product Images */}
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label" style={{ marginBottom: 10 }}>
+                      📷 Product Images
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
+                        ({productImages.length + newProductFiles.length} added, up to 10)
+                      </span>
+                    </label>
+                    <div className="multi-image-grid">
+                      {/* Existing images */}
+                      {productImages.map((src, i) => (
+                        <div key={`ep-${i}`} className="multi-image-item">
+                          <img src={src} alt={`product-${i}`} />
+                          <button type="button" className="multi-image-remove" onClick={() => removeExisting(i, 'product')}>
+                            <X size={10} />
                           </button>
                         </div>
-                      ) : (
-                        <div className="upload-zone" onClick={() => productImgRef.current.click()}>
-                          <div className="upload-zone-icon">📷</div>
-                          <div className="upload-zone-text">
-                            <strong>Upload Product Image</strong><br />
-                            PNG, JPG up to 5MB
-                          </div>
+                      ))}
+                      {/* New files */}
+                      {newProductFiles.map(({ preview }, i) => (
+                        <div key={`np-${i}`} className="multi-image-item new">
+                          <img src={preview} alt={`new-product-${i}`} />
+                          <button type="button" className="multi-image-remove" onClick={() => removeNew(i, 'product')}>
+                            <X size={10} />
+                          </button>
+                          <div className="multi-image-new-badge">NEW</div>
+                        </div>
+                      ))}
+                      {/* Add button */}
+                      {(productImages.length + newProductFiles.length) < 10 && (
+                        <div className="multi-image-add" onClick={() => productImgRef.current.click()}>
+                          <ImagePlus size={20} />
+                          <span>Add</span>
                         </div>
                       )}
-                      <input ref={productImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'product')} />
                     </div>
+                    <input ref={productImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                      onChange={e => addFiles(e, 'product')} />
+                  </div>
 
-                    {/* Design Image */}
-                    <div className="form-group">
-                      <label className="form-label">Design Image</label>
-                      {designImagePreview ? (
-                        <div className="image-preview">
-                          <img src={designImagePreview} alt="Design" />
-                          <button
-                            type="button"
-                            className="image-preview-remove"
-                            onClick={() => { setDesignImageFile(null); setDesignImagePreview(null); }}
-                          >
-                            <X size={12} />
+                  {/* Design Images */}
+                  <div className="form-group">
+                    <label className="form-label" style={{ marginBottom: 10 }}>
+                      🎨 Design Images
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
+                        ({designImages.length + newDesignFiles.length} added, up to 10)
+                      </span>
+                    </label>
+                    <div className="multi-image-grid">
+                      {designImages.map((src, i) => (
+                        <div key={`ed-${i}`} className="multi-image-item">
+                          <img src={src} alt={`design-${i}`} />
+                          <button type="button" className="multi-image-remove" onClick={() => removeExisting(i, 'design')}>
+                            <X size={10} />
                           </button>
                         </div>
-                      ) : (
-                        <div className="upload-zone" onClick={() => designImgRef.current.click()}>
-                          <div className="upload-zone-icon">🎨</div>
-                          <div className="upload-zone-text">
-                            <strong>Upload Design Image</strong><br />
-                            PNG, JPG up to 5MB
-                          </div>
+                      ))}
+                      {newDesignFiles.map(({ preview }, i) => (
+                        <div key={`nd-${i}`} className="multi-image-item new">
+                          <img src={preview} alt={`new-design-${i}`} />
+                          <button type="button" className="multi-image-remove" onClick={() => removeNew(i, 'design')}>
+                            <X size={10} />
+                          </button>
+                          <div className="multi-image-new-badge">NEW</div>
+                        </div>
+                      ))}
+                      {(designImages.length + newDesignFiles.length) < 10 && (
+                        <div className="multi-image-add" onClick={() => designImgRef.current.click()}>
+                          <ImagePlus size={20} />
+                          <span>Add</span>
                         </div>
                       )}
-                      <input ref={designImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFileChange(e, 'design')} />
                     </div>
+                    <input ref={designImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                      onChange={e => addFiles(e, 'design')} />
                   </div>
-                </div>
+                </Section>
 
-                {/* Specifications & Description */}
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Details
-                  </div>
+                {/* Details */}
+                <Section title="Details">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div className="form-group">
                       <label className="form-label">Specifications</label>
-                      <textarea
-                        className="form-textarea"
-                        value={form.specifications}
+                      <textarea className="form-textarea" value={form.specifications}
                         onChange={e => setForm({ ...form, specifications: e.target.value })}
-                        placeholder="Technical specifications, dimensions, material, etc."
-                        rows={3}
-                      />
+                        placeholder="Technical specifications, dimensions, material, etc." rows={3} />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Description</label>
-                      <textarea
-                        className="form-textarea"
-                        value={form.description}
+                      <textarea className="form-textarea" value={form.description}
                         onChange={e => setForm({ ...form, description: e.target.value })}
-                        placeholder="Product description..."
-                        rows={3}
-                      />
+                        placeholder="Product description..." rows={3} />
                     </div>
                   </div>
-                </div>
+                </Section>
               </div>
 
               <div className="modal-footer">
@@ -552,6 +532,17 @@ export default function Products() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        {title}
+      </div>
+      {children}
     </div>
   );
 }

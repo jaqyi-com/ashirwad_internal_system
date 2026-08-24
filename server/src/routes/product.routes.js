@@ -1,28 +1,27 @@
 const express = require('express');
-const multer = require('multer');
-const prisma = require('../config/prisma');
+const multer  = require('multer');
+const prisma  = require('../config/prisma');
 const { asyncHandler } = require('../middleware/error.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-// Memory storage — works on Vercel serverless (no local filesystem writes)
-// Images are stored as base64 data URIs in the database.
+// Memory storage — Vercel serverless compatible (no local filesystem)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per image
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files allowed'), false);
   },
 }).fields([
-  { name: 'productImage', maxCount: 1 },
-  { name: 'designImage', maxCount: 1 },
+  { name: 'productImages', maxCount: 10 },
+  { name: 'designImages',  maxCount: 10 },
 ]);
 
-// Convert an in-memory multer file to a base64 data URI
-const toDataUri = (file) =>
-  file ? `data:${file.mimetype};base64,${file.buffer.toString('base64')}` : null;
+// Convert multer file(s) to base64 data URI array
+const toDataUris = (files) =>
+  (files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
 
 // GET /api/products
 router.get('/', authenticate, asyncHandler(async (req, res) => {
@@ -31,15 +30,14 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
   const where = { isActive: true };
   if (search) {
     where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { sku: { contains: search, mode: 'insensitive' } },
+      { name:       { contains: search, mode: 'insensitive' } },
+      { sku:        { contains: search, mode: 'insensitive' } },
       { partNumber: { contains: search, mode: 'insensitive' } },
-      { company: { contains: search, mode: 'insensitive' } },
+      { company:    { contains: search, mode: 'insensitive' } },
     ];
   }
   if (categoryId) where.categoryId = categoryId;
   if (supplierId) where.supplierId = supplierId;
-  if (lowStock === 'true') where.currentStock = { lte: prisma.product.fields.minStock };
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const [products, total] = await Promise.all([
@@ -91,39 +89,44 @@ router.post('/', authenticate, upload, asyncHandler(async (req, res) => {
     name, sku, partNumber, description, specifications,
     categoryId, company, supplierId, location, price, purchasePrice,
     gstPercent, minStock, currentStock, unit, coatingTypeId, barcode,
+    existingProductImages, existingDesignImages,
   } = req.body;
 
   if (!name) return res.status(400).json({ error: 'Product name is required.' });
 
-  const productImage = toDataUri(req.files?.productImage?.[0]);
-  const designImage  = toDataUri(req.files?.designImage?.[0]);
+  // Merge any pre-existing images (passed as JSON) with newly uploaded ones
+  const prevProductImages = parseJsonArray(existingProductImages);
+  const prevDesignImages  = parseJsonArray(existingDesignImages);
+
+  const productImages = [...prevProductImages, ...toDataUris(req.files?.productImages)];
+  const designImages  = [...prevDesignImages,  ...toDataUris(req.files?.designImages)];
 
   const product = await prisma.product.create({
     data: {
       name,
-      sku: sku || null,
-      partNumber: partNumber || null,
-      description: description || null,
+      sku:           sku           || null,
+      partNumber:    partNumber    || null,
+      description:   description   || null,
       specifications: specifications || null,
-      categoryId: categoryId || null,
-      company: company || null,
-      supplierId: supplierId || null,
-      location: location || null,
-      price: parseFloat(price) || 0,
+      categoryId:    categoryId    || null,
+      company:       company       || null,
+      supplierId:    supplierId    || null,
+      location:      location      || null,
+      price:         parseFloat(price)         || 0,
       purchasePrice: parseFloat(purchasePrice) || 0,
-      gstPercent: parseFloat(gstPercent) || 18,
-      minStock: parseInt(minStock) || 0,
-      currentStock: parseInt(currentStock) || 0,
-      unit: unit || 'pcs',
-      productImage,
-      designImage,
+      gstPercent:    parseFloat(gstPercent)    || 18,
+      minStock:      parseInt(minStock)        || 0,
+      currentStock:  parseInt(currentStock)   || 0,
+      unit:          unit || 'pcs',
+      productImages,
+      designImages,
       coatingTypeId: coatingTypeId || null,
-      barcode: barcode || null,
+      barcode:       barcode       || null,
     },
     include: { category: true, supplier: true, coatingType: true },
   });
 
-  // Record opening stock transaction if currentStock > 0
+  // Record opening stock transaction
   if (parseInt(currentStock) > 0) {
     await prisma.inventoryTransaction.create({
       data: {
@@ -150,36 +153,37 @@ router.put('/:id', authenticate, upload, asyncHandler(async (req, res) => {
     name, sku, partNumber, description, specifications,
     categoryId, company, supplierId, location, price, purchasePrice,
     gstPercent, minStock, unit, coatingTypeId, barcode,
+    existingProductImages, existingDesignImages,
   } = req.body;
 
-  const productImage = req.files?.productImage?.[0]
-    ? toDataUri(req.files.productImage[0])
-    : existing.productImage;
-  const designImage = req.files?.designImage?.[0]
-    ? toDataUri(req.files.designImage[0])
-    : existing.designImage;
+  // Combine kept existing images + newly uploaded ones
+  const prevProductImages = parseJsonArray(existingProductImages) ?? existing.productImages;
+  const prevDesignImages  = parseJsonArray(existingDesignImages)  ?? existing.designImages;
+
+  const productImages = [...prevProductImages, ...toDataUris(req.files?.productImages)];
+  const designImages  = [...prevDesignImages,  ...toDataUris(req.files?.designImages)];
 
   const product = await prisma.product.update({
     where: { id: req.params.id },
     data: {
-      name: name || existing.name,
-      sku: sku !== undefined ? sku || null : existing.sku,
-      partNumber: partNumber !== undefined ? partNumber || null : existing.partNumber,
-      description: description !== undefined ? description : existing.description,
+      name:          name          || existing.name,
+      sku:           sku  !== undefined ? sku  || null : existing.sku,
+      partNumber:    partNumber    !== undefined ? partNumber    || null : existing.partNumber,
+      description:   description   !== undefined ? description   : existing.description,
       specifications: specifications !== undefined ? specifications : existing.specifications,
-      categoryId: categoryId !== undefined ? categoryId || null : existing.categoryId,
-      company: company !== undefined ? company : existing.company,
-      supplierId: supplierId !== undefined ? supplierId || null : existing.supplierId,
-      location: location !== undefined ? location : existing.location,
-      price: price !== undefined ? parseFloat(price) : existing.price,
+      categoryId:    categoryId    !== undefined ? categoryId    || null : existing.categoryId,
+      company:       company       !== undefined ? company       : existing.company,
+      supplierId:    supplierId    !== undefined ? supplierId    || null : existing.supplierId,
+      location:      location      !== undefined ? location      : existing.location,
+      price:         price         !== undefined ? parseFloat(price)         : existing.price,
       purchasePrice: purchasePrice !== undefined ? parseFloat(purchasePrice) : existing.purchasePrice,
-      gstPercent: gstPercent !== undefined ? parseFloat(gstPercent) : existing.gstPercent,
-      minStock: minStock !== undefined ? parseInt(minStock) : existing.minStock,
-      unit: unit || existing.unit,
-      productImage,
-      designImage,
+      gstPercent:    gstPercent    !== undefined ? parseFloat(gstPercent)    : existing.gstPercent,
+      minStock:      minStock      !== undefined ? parseInt(minStock)        : existing.minStock,
+      unit:          unit          || existing.unit,
+      productImages,
+      designImages,
       coatingTypeId: coatingTypeId !== undefined ? coatingTypeId || null : existing.coatingTypeId,
-      barcode: barcode !== undefined ? barcode : existing.barcode,
+      barcode:       barcode       !== undefined ? barcode       : existing.barcode,
     },
     include: { category: true, supplier: true, coatingType: true },
   });
@@ -192,5 +196,12 @@ router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
   await prisma.product.update({ where: { id: req.params.id }, data: { isActive: false } });
   res.json({ message: 'Product deleted.' });
 }));
+
+// Helper: safely parse JSON array from form data string
+function parseJsonArray(val) {
+  if (!val) return null;
+  try { const p = JSON.parse(val); return Array.isArray(p) ? p : null; }
+  catch { return null; }
+}
 
 module.exports = router;
