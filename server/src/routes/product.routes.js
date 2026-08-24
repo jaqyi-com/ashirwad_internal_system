@@ -196,13 +196,15 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
 
   // Record adjustment transaction if stock changed
   if (currentStock !== undefined && parseInt(currentStock) !== existing.currentStock) {
+    const newQty = parseInt(currentStock);
+    const diff   = newQty - existing.currentStock;
     await prisma.inventoryTransaction.create({
       data: {
         productId:       req.params.id,
-        transactionType: 'ADJUSTMENT',
-        quantity:        Math.abs(parseInt(currentStock) - existing.currentStock),
+        transactionType: diff > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
+        quantity:        Math.abs(diff),
         previousStock:   existing.currentStock,
-        newStock:        parseInt(currentStock),
+        newStock:        newQty,
         notes:           'Manual stock edit',
         createdById:     req.user.id,
       },
