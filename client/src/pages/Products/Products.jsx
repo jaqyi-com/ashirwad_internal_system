@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import ProductDetailModal from './ProductDetailModal';
 
 const INITIAL_FORM = {
-  name: '', sku: '', partNumber: '', description: '', specifications: '',
+  name: '', partNumber: '', description: '', specifications: '',
   categoryId: '', company: '', supplierId: '', location: '0',
   price: '0', purchasePrice: '0', gstPercent: '18', minStock: '0',
   currentStock: '0', unit: 'pcs', coatingTypeId: '', barcode: '',
@@ -82,7 +82,7 @@ export default function Products() {
     const isCustomGst = !GST_SLABS.find(s => s.value === parseFloat(p.gstPercent));
     setUseCustomGst(isCustomGst);
     setForm({
-      name: p.name || '', sku: p.sku || '', partNumber: p.partNumber || '',
+      name: p.name || '', partNumber: p.partNumber || '',
       description: p.description || '', specifications: p.specifications || '',
       categoryId: p.categoryId || '', company: p.company || '',
       supplierId: p.supplierId || '', location: p.location || '0',
@@ -198,7 +198,7 @@ export default function Products() {
             <thead>
               <tr>
                 <th>Product</th>
-                <th className="hide-mobile">SKU / Part No.</th>
+                <th className="hide-mobile">Part No.</th>
                 <th className="hide-mobile">Category</th>
                 <th className="hide-tablet">Supplier</th>
                 <th className="hide-tablet">Location</th>
@@ -238,8 +238,7 @@ export default function Products() {
                       </div>
                     </td>
                     <td className="hide-mobile">
-                      {p.sku && <div className="mono" style={{ fontSize: '12px' }}>{p.sku}</div>}
-                      {p.partNumber && <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>P/N: {p.partNumber}</div>}
+                      {p.partNumber && <div style={{ fontSize: '12px' }}>{p.partNumber}</div>}
                     </td>
                     <td className="hide-mobile">
                       {p.category ? <span className="badge badge-blue">{p.category.name}</span> : '—'}
@@ -344,10 +343,6 @@ export default function Products() {
                 {/* Identification */}
                 <Section title="Identification">
                   <div className="grid-2" style={{ gap: 12 }}>
-                    <div className="form-group">
-                      <label className="form-label">SKU</label>
-                      <input className="form-input mono" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} placeholder="e.g. PRD-001" />
-                    </div>
                     <div className="form-group">
                       <label className="form-label">Part Number</label>
                       <input className="form-input mono" value={form.partNumber} onChange={e => setForm({ ...form, partNumber: e.target.value })} placeholder="Manufacturer part number" />

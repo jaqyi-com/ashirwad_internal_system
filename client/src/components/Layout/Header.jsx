@@ -1,10 +1,12 @@
-import { Bell, Search, LogOut, User, ChevronDown } from 'lucide-react';
+import { Bell, LogOut, User, ChevronDown, Sun, Moon } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeStore } from '../../store/themeStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function Header({ title, subtitle }) {
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
 
@@ -30,6 +32,15 @@ export default function Header({ title, subtitle }) {
       </div>
 
       <div className="header-right">
+        {/* Theme toggle */}
+        <button
+          className="btn btn-secondary btn-icon theme-toggle"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         {/* Notifications */}
         <button className="btn btn-secondary btn-icon" style={{ position: 'relative' }}>
           <Bell size={18} />
@@ -60,10 +71,7 @@ export default function Header({ title, subtitle }) {
 
           {showMenu && (
             <>
-              <div
-                style={{ position: 'fixed', inset: 0, zIndex: 49 }}
-                onClick={() => setShowMenu(false)}
-              />
+              <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setShowMenu(false)} />
               <div className="dropdown-menu">
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ fontWeight: 600, fontSize: '13px' }}>{user?.name}</div>
@@ -86,3 +94,4 @@ export default function Header({ title, subtitle }) {
     </div>
   );
 }
+

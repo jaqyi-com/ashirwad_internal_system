@@ -25,7 +25,6 @@ export default function ProductDetailModal({ product, onClose, onEdit }) {
             <div>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{product.name}</h2>
               <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-                {product.sku && <span className="badge badge-gray">SKU: {product.sku}</span>}
                 {product.partNumber && <span className="badge badge-gray">P/N: {product.partNumber}</span>}
                 {product.coatingType && <span className="badge badge-blue">{product.coatingType.name}</span>}
                 <span className={`badge ${status.className}`}>{status.label}</span>

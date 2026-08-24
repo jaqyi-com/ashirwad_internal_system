@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
+import { useThemeStore } from './store/themeStore';
+import { useEffect } from 'react';
 
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
@@ -29,6 +31,12 @@ const ProtectedRoute = ({ children }) => {
 };
 
 export default function App() {
+  const { theme } = useThemeStore();
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   return (
     <BrowserRouter>
       <Toaster

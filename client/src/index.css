@@ -6,6 +6,7 @@
   --bg-secondary: #111318;
   --bg-card: #161820;
   --bg-card-hover: #1c1f28;
+  --bg-hover: #1c1f28;
   --bg-sidebar: #0d0f14;
   --border: #1f2330;
   --border-light: #252a3a;
@@ -32,6 +33,42 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
 }
+
+/* ─── LIGHT THEME ──────────────────────────────── */
+[data-theme='light'] {
+  --bg-primary:    #f0f2f7;
+  --bg-secondary:  #e4e7ef;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #f5f7fc;
+  --bg-hover:      #f5f7fc;
+  --bg-sidebar:    #1e2033;
+  --border:        #d8dce8;
+  --border-light:  #e2e6f0;
+  --text-primary:  #1a1d2e;
+  --text-secondary:#5a6278;
+  --text-muted:    #9aa0b4;
+  --accent:        #6366f1;
+  --accent-light:  #818cf8;
+  --accent-glow:   rgba(99, 102, 241, 0.12);
+  --accent-hover:  #4f46e5;
+  --shadow:        0 4px 24px rgba(0,0,0,0.08);
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Smooth theme transition on all elements */
+*, *::before, *::after {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.15s ease,
+    box-shadow 0.2s ease;
+}
+/* But not transitions on animations / transforms */
+.spin, .gallery-nav, .lightbox-nav, .btn { transition: none; }
+.btn { transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s; }
+
+/* Theme toggle button glows on hover */
+.theme-toggle:hover { color: var(--yellow) !important; border-color: var(--yellow) !important; }
 
 * {
   box-sizing: border-box;
