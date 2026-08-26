@@ -1,5 +1,6 @@
 import Sidebar from './Sidebar';
 import Header from './Header';
+import MobileBottomNav from './MobileBottomNav';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
@@ -34,7 +35,7 @@ export default function Layout() {
 
   return (
     <div className="layout app-layout">
-      {/* Mobile hamburger */}
+      {/* Mobile hamburger — only visible on mobile, opens full sidebar */}
       <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(o => !o)}>
         <Menu size={20} />
       </button>
@@ -49,7 +50,11 @@ export default function Layout() {
           <Outlet />
         </div>
       </div>
+
+      {/* Bottom navigation — mobile only */}
+      <MobileBottomNav />
     </div>
   );
 }
+
 

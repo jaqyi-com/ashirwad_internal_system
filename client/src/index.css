@@ -836,6 +836,9 @@ tbody td {
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* ─── MOBILE BOTTOM NAV — hidden on desktop ─── */
+.mobile-bottom-nav { display: none; }
+
 /* ─── RESPONSIVE — TABLET (≤1024px) ─────────── */
 @media (max-width: 1024px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -846,134 +849,336 @@ tbody td {
 }
 
 /* ═══════════════════════════════════════════════
-   MOBILE (≤768px) — Native App Feel
-   No horizontal scroll. Tables → cards.
-   Modals → full-screen bottom sheets.
+   MOBILE (≤768px) — Native iOS App Feel
+   ✅ No horizontal scroll
+   ✅ Bottom navigation bar
+   ✅ Card-list layout for tables
+   ✅ Full-screen bottom-sheet modals
+   ✅ iOS typography & spacing
 ═══════════════════════════════════════════════ */
 @media (max-width: 768px) {
 
   /* ── Global overflow guard ── */
-  body, #root, .layout, .app-layout, .main-content, .page-content {
+  html, body, #root, .layout, .app-layout, .main-content, .page-content {
     max-width: 100vw;
     overflow-x: hidden;
   }
 
   /* ── Layout ── */
   .app-layout { position: relative; }
+
+  /* Sidebar slides in as a full-height drawer */
   .sidebar {
     position: fixed; left: 0; top: 0; bottom: 0;
-    z-index: 100;
+    z-index: 300;
     transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    width: 280px !important;
-    box-shadow: 4px 0 32px rgba(0,0,0,0.5);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 82vw !important;
+    max-width: 320px !important;
+    box-shadow: 8px 0 48px rgba(0,0,0,0.6);
   }
   .sidebar.mobile-open { transform: translateX(0); }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 299; backdrop-filter: blur(2px); }
   .sidebar-overlay.mobile-open { display: block; }
-  .sidebar-mobile-toggle { display: flex; }
+  .sidebar-mobile-toggle { display: flex; z-index: 200; top: 14px; left: 14px; }
   .sidebar-item span, .sidebar-section-label { display: flex !important; }
   .sidebar-logo-text { display: block !important; }
   .main-content { margin-left: 0 !important; width: 100vw; }
 
   /* ── Header ── */
-  .header { padding: 0 10px 0 54px; gap: 6px; height: 54px; }
+  .header {
+    padding: 0 12px 0 54px;
+    gap: 6px;
+    height: 52px;
+    /* Gradient header like a native app */
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    border-bottom: 1px solid var(--border);
+  }
   .header-right { gap: 4px; }
   .header-right .btn { padding: 6px; }
   .header-user-name { display: none; }
-  .header-title { font-size: 14px; }
+  .header-title { font-size: 15px; font-weight: 700; }
 
   /* ── Page content ── */
-  .page-content { padding: 12px 12px 20px; }
-  .page-header {
-    flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
-    align-items: flex-start;
+  /* Account for bottom nav */
+  .page-content {
+    padding: 14px 12px calc(72px + env(safe-area-inset-bottom, 12px));
+    overflow-x: hidden;
   }
-  .page-header h1 { font-size: 18px; }
-  .page-header .btn { width: 100%; justify-content: center; }
+
+  /* ── Page header — app-style title row ── */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .page-header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+  .page-header p  { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .page-header > .btn { /* FAB-style add button */
+    padding: 10px 18px;
+    border-radius: 99px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+  }
 
   /* ── Grids ── */
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; gap: 10px; }
-  .grid-stat { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
 
-  /* ── Stat cards ── */
-  .stat-card { padding: 14px 12px; gap: 10px; }
-  .stat-card-value { font-size: 20px; }
-  .stat-card-icon { width: 40px; height: 40px; }
+  /* Stat grid — 2 columns that always fit */
+  .grid-stat {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
 
-  /* ── Search bar ── */
-  .search-bar { width: 100%; }
-  .search-bar input { width: 100%; min-width: 0; flex: 1; }
+  /* ── Stat cards — compact, pill-value style ── */
+  .stat-card {
+    padding: 14px 14px;
+    gap: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 14px;
+    min-height: 80px;
+  }
+  .stat-card-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .stat-card-value {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .stat-card-label {
+    font-size: 11px;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .stat-card-change { font-size: 10px; margin-top: 3px; }
 
-  /* ── Table wrapper: no horizontal scroll ── */
+  /* ── Search bar — full width ── */
+  .search-bar {
+    width: 100%;
+    border-radius: 12px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+  }
+  .search-bar input { width: 100%; min-width: 0; flex: 1; font-size: 14px; }
+
+  /* ── Table wrapper — clean, no border ── */
   .table-wrapper {
     overflow-x: hidden;
     border: none;
     border-radius: 0;
     background: transparent;
+    margin: 0 -2px; /* bleed slightly for card shadow */
   }
 
-  /* ── Tables become mobile card lists ── */
+  /* ── Tables → iOS-style List Cards ── */
   table {
     display: block;
     width: 100%;
     overflow: hidden;
   }
-  thead { display: none; } /* hide headers — labels on cards instead */
-  tbody { display: flex; flex-direction: column; gap: 8px; }
-  tbody tr {
+
+  /* Kill desktop header */
+  thead { display: none !important; }
+
+  /* Rows become cards */
+  tbody {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+  }
+
+  tbody tr {
+    display: grid;
+    /* [thumb+name] [badge] [actions] */
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 12px 14px;
-    gap: 6px;
-    border-top: none;
+    gap: 4px 10px;
+    border-top: 1px solid var(--border); /* reset from desktop reset */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
   }
-  tbody tr:hover { background: var(--bg-card-hover); }
+  tbody tr:hover, tbody tr:active { background: var(--bg-card-hover); }
+
+  /* All td default: inline-flex row */
   tbody td {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 3px 0;
+    padding: 0;
     font-size: 13px;
     border: none;
+    overflow: hidden;
   }
 
-  /* ── Mobile card: first td = primary item row ── */
+  /* First td = full-width name + thumb row */
   tbody td:first-child {
+    grid-column: 1;
+    grid-row: 1;
     font-weight: 700;
     font-size: 14px;
     justify-content: flex-start;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: none;
+    padding: 0;
+    margin: 0;
   }
 
-  /* ── Last td = actions row ── */
-  tbody td:last-child {
-    justify-content: flex-end;
-    padding-top: 6px;
-    margin-top: 2px;
-    border-top: 1px solid var(--border);
+  /* Second td = sub-info row (price, date, etc.) */
+  tbody td:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border: none;
+    padding: 0;
+    margin: 0;
     gap: 6px;
   }
 
-  /* ── Unhide all columns on mobile (no hide-mobile) ── */
-  .hide-mobile { display: flex !important; }
+  /* Third td = stock/badge — top-right */
+  tbody td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    border: none;
+    padding: 0;
+  }
 
-  /* ── Tighter action buttons ── */
-  .btn-sm { padding: 6px 10px; font-size: 11px; }
-  .btn-icon { padding: 7px; }
+  /* Actions td = bottom-right */
+  tbody td:last-child {
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-end;
+    gap: 4px;
+    border: none;
+    padding: 0;
+  }
+
+  /* Ensure hidden cols still hidden */
+  .hide-mobile { display: none !important; }
+
+  /* ── iOS-style action buttons ── */
+  .btn-sm  { padding: 7px 12px; font-size: 11.5px; border-radius: 8px; }
+  .btn-icon { padding: 7px; border-radius: 9px; }
+  .btn { border-radius: 10px; }
 
   /* ── Products toolbar ── */
-  .products-toolbar { flex-direction: column; gap: 8px; }
+  .products-toolbar {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
   .products-toolbar .search-bar { min-width: unset; width: 100%; }
-  .products-toolbar .form-select { width: 100%; }
-  .products-toolbar .btn { width: 100%; justify-content: center; }
+  .products-toolbar .form-select {
+    width: 100%;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  .products-toolbar .btn {
+    width: 100%;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
 
   /* ── Product thumb ── */
-  .product-thumb, .product-thumb-placeholder { width: 36px; height: 36px; }
+  .product-thumb, .product-thumb-placeholder {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── Bottom navigation bar — iOS tab bar ── */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: calc(58px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding-top: 6px;
+    /* Frosted glass effect */
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 -1px 0 var(--border), 0 -8px 32px rgba(0,0,0,0.18);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border-radius: 12px;
+    transition: color 0.15s;
+    min-width: 52px;
+    position: relative;
+  }
+
+  .mobile-nav-item svg {
+    transition: transform 0.15s, color 0.15s;
+  }
+
+  .mobile-nav-item.active {
+    color: var(--accent-light);
+  }
+
+  .mobile-nav-item.active svg {
+    transform: scale(1.08);
+  }
+
+  /* Active indicator dot */
+  .mobile-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%; transform: translateX(-50%);
+    width: 28px; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* ── Hide sidebar toggle when bottom nav is active ── */
+  /* (still keep it for accessing extra pages) */
+  .sidebar-mobile-toggle {
+    top: 11px; left: 10px;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    color: var(--text-secondary);
+    z-index: 201;
+  }
 
   /* ── Modals → full-screen bottom sheet ── */
   .modal-overlay {
@@ -983,58 +1188,61 @@ tbody td {
   .modal {
     width: 100vw !important;
     max-width: 100vw !important;
-    max-height: 92dvh !important;
+    max-height: 93dvh !important;
     margin: 0 !important;
-    border-radius: 20px 20px 0 0 !important;
+    border-radius: 22px 22px 0 0 !important;
     position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
     overflow-x: hidden;
+    box-shadow: 0 -8px 48px rgba(0,0,0,0.4);
   }
   .modal-header {
-    padding: 16px 16px 14px;
-    position: sticky;
-    top: 0;
+    padding: 8px 16px 14px;
+    position: sticky; top: 0;
     background: var(--bg-card);
     z-index: 10;
-    /* drag handle indicator */
+    flex-direction: column;
+    gap: 8px;
   }
+  /* Drag handle */
   .modal-header::before {
     content: '';
     display: block;
-    width: 36px; height: 4px;
+    width: 40px; height: 4px;
     background: var(--border-light);
     border-radius: 2px;
-    margin: 0 auto 12px;
+    margin: 6px auto 0;
   }
-  .modal-header h2 { font-size: 15px; }
+  .modal-header h2 { font-size: 16px; font-weight: 700; }
+  /* Header actions row below title */
+  .modal-header > div:last-child {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
   .modal-body {
     padding: 14px 16px;
-    max-height: 65dvh;
+    max-height: 62dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overflow-x: hidden;
   }
   .modal-footer {
-    padding: 12px 16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     flex-direction: column-reverse;
     gap: 8px;
-    position: sticky;
-    bottom: 0;
+    position: sticky; bottom: 0;
     background: var(--bg-card);
     border-top: 1px solid var(--border);
   }
-  .modal-footer .btn { width: 100%; justify-content: center; }
+  .modal-footer .btn { width: 100%; justify-content: center; padding: 13px; font-size: 14px; font-weight: 600; border-radius: 12px; }
 
-  /* ── Product detail modal (full screen) ── */
+  /* ── Product detail modal → full screen ── */
   .product-detail-modal {
     width: 100vw !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     border-radius: 0 !important;
-    position: fixed;
-    top: 0; left: 0; bottom: 0; right: 0;
+    position: fixed; top: 0; left: 0; bottom: 0; right: 0;
   }
   .product-detail-body { grid-template-columns: 1fr; overflow-y: auto; }
   .product-detail-gallery { border-right: none; border-bottom: 1px solid var(--border); }
@@ -1043,29 +1251,51 @@ tbody td {
   .product-detail-header { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
   .product-detail-header > div:last-child { margin-left: auto; }
 
-  /* ── Tab buttons ── */
-  .tab-btn { padding: 6px 10px; font-size: 12px; }
-  .tab-nav { flex-wrap: wrap; }
+  /* ── Tabs ── */
+  .tab-btn { padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+  .tab-nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  /* ── Charts ── */
-  .chart-container { height: 200px; }
+  /* ── Chart ── */
+  .chart-container { height: 190px; }
 
-  /* ── Multi-image grid ── */
-  .multi-image-item, .multi-image-add { width: 70px; height: 70px; }
+  /* ── Multi-image ── */
+  .multi-image-item, .multi-image-add { width: 72px; height: 72px; border-radius: 12px; }
 
-  /* ── Form grid — single column ── */
-  .form-group + .form-group { margin-top: 0; }
+  /* ── Card section label (like iOS section headers) ── */
+  .mobile-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 8px 4px 4px;
+    margin-top: 6px;
+  }
+
+  /* ── Pagination — compact pill style ── */
+  .pagination-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 0 2px;
+  }
+  .pagination-row .btn {
+    flex: 1;
+    justify-content: center;
+    border-radius: 12px;
+  }
 }
 
-/* ─── SMALL MOBILE (≤420px) ──────────────────── */
+/* ─── SMALL MOBILE (≤420px) ── */
 @media (max-width: 420px) {
   html { font-size: 13px; }
-  .grid-stat { grid-template-columns: 1fr; }
-  .product-detail-prices { grid-template-columns: repeat(2, 1fr); }
+  .grid-stat { grid-template-columns: 1fr 1fr; }
   .stat-card-value { font-size: 18px; }
-  .stat-card { padding: 12px 10px; }
+  .stat-card { padding: 12px 10px; min-height: 72px; }
+  .product-detail-prices { grid-template-columns: repeat(2, 1fr); }
 }
-
 
 /* Notification dot */
 .notif-dot {
