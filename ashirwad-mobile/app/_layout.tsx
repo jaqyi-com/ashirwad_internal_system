@@ -4,7 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../store/authStore';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '../constants/Colors';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
@@ -36,12 +35,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <AuthProvider>
         <StatusBar style="light" backgroundColor={Colors.bgPrimary} />
         <RootLayoutNav />
       </AuthProvider>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
