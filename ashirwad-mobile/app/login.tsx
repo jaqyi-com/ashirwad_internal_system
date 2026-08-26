@@ -11,8 +11,8 @@ import { Colors, Radius, Spacing } from '../constants/Colors';
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [email, setEmail]       = useState('admin@ashirwad.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
   const [showPwd, setShowPwd]   = useState(false);
   const [loading, setLoading]   = useState(false);
 
