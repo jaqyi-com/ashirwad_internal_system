@@ -12,19 +12,27 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
       { company: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+      { phone: { contains: search, mode: 'insensitive' } },
     ];
   }
-  const customers = await prisma.customer.findMany({ where, orderBy: { name: 'asc' } });
+  const customers = await prisma.customer.findMany({
+    where,
+    include: { _count: { select: { sales: true } } },
+    orderBy: { name: 'asc' },
+  });
   res.json(customers);
 }));
 
 router.post('/', authenticate, asyncHandler(async (req, res) => {
-  const customer = await prisma.customer.create({ data: req.body });
+  const { _count, sales, id, createdAt, updatedAt, ...data } = req.body;
+  const customer = await prisma.customer.create({ data });
   res.status(201).json(customer);
 }));
 
 router.put('/:id', authenticate, asyncHandler(async (req, res) => {
-  const customer = await prisma.customer.update({ where: { id: req.params.id }, data: req.body });
+  const { _count, sales, id, createdAt, updatedAt, ...data } = req.body;
+  const customer = await prisma.customer.update({ where: { id: req.params.id }, data });
   res.json(customer);
 }));
 
