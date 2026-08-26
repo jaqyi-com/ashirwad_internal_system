@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tags, Truck, ShoppingCart, TrendingUp,
   Users, FileText, BarChart2, Settings, ChevronLeft, ChevronRight,
-  Layers, AlertTriangle, ArrowLeftRight, UserCheck, ClipboardList,
+  Layers, ArrowLeftRight, UserCheck, ClipboardList,
   History, Fingerprint, Wifi, UsersRound, MonitorSmartphone
 } from 'lucide-react';
 import { useState } from 'react';
@@ -21,7 +21,6 @@ const navItems = [
       { label: 'Categories', path: '/categories', icon: Tags },
       { label: 'Stock Movements', path: '/inventory', icon: History },
       { label: 'Adjustments', path: '/adjustments', icon: ArrowLeftRight },
-      { label: 'Low Stock Alerts', path: '/low-stock', icon: AlertTriangle },
     ],
   },
   {

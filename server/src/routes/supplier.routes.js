@@ -42,7 +42,9 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.put('/:id', authenticate, asyncHandler(async (req, res) => {
-  const supplier = await prisma.supplier.update({ where: { id: req.params.id }, data: req.body });
+  // Strip computed / relational fields that Prisma rejects in update data
+  const { _count, products, purchaseOrders, id, createdAt, updatedAt, ...data } = req.body;
+  const supplier = await prisma.supplier.update({ where: { id: req.params.id }, data });
   res.json(supplier);
 }));
 
