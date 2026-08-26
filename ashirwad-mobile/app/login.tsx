@@ -25,9 +25,10 @@ export default function LoginScreen() {
     try {
       await login(email.trim().toLowerCase(), password);
     } catch (err: any) {
+      console.log('Login error:', err?.response?.data || err?.message);
       Alert.alert(
         'Login Failed',
-        err?.response?.data?.message || 'Invalid credentials. Please try again.'
+        err?.response?.data?.error || err?.response?.data?.message || 'Invalid credentials. Please try again.'
       );
     } finally {
       setLoading(false);
