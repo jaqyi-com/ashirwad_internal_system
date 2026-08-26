@@ -31,8 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const stored = await SecureStore.getItemAsync('auth_token');
         if (stored) {
           setToken(stored);
-          const { data } = await api.get('/auth/me');
-          setUser(data.user);
+          const { data } = await api.get('/users/me');
+          setUser(data);
         }
       } catch (_) {
         await SecureStore.deleteItemAsync('auth_token');
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
-    const jwt = data.token;
+    const jwt = data.accessToken;
     await SecureStore.setItemAsync('auth_token', jwt);
     setToken(jwt);
     setUser(data.user);
