@@ -5,6 +5,7 @@ import { useThemeStore } from './store/themeStore';
 import { useEffect } from 'react';
 
 import Layout from './components/Layout/Layout';
+import TopLoadingBar from './components/Common/TopLoadingBar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Products from './pages/Products/Products';
@@ -40,6 +41,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <TopLoadingBar />
       <Toaster
         position="top-right"
         toastOptions={{
