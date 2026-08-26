@@ -129,7 +129,6 @@ export default function ProductDetailModal({ product, onClose, onEdit }) {
               <div className="product-detail-rows">
                 <DetailRow icon={<Tag size={14} />}      label="Category"  value={product.category?.name} />
                 <DetailRow icon={<Truck size={14} />}    label="Supplier"  value={product.supplier?.name} />
-                <DetailRow icon={<Layers size={14} />}   label="Company"   value={product.company} />
                 <DetailRow icon={<MapPin size={14} />}   label="Location"  value={product.location} />
                 <DetailRow icon={<Hash size={14} />}     label="Barcode"   value={product.barcode} />
                 <DetailRow icon={<BarChart2 size={14} />} label="Min Stock" value={product.minStock ? `${product.minStock} ${product.unit}` : null} />

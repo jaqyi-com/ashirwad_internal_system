@@ -119,4 +119,77 @@ router.patch('/:id/status', authenticate, asyncHandler(async (req, res) => {
   res.json(sale);
 }));
 
+router.put('/:id', authenticate, asyncHandler(async (req, res) => {
+  const { customerId, items, notes, discount = 0, status, paidAmount } = req.body;
+  const existingSale = await prisma.sale.findUnique({
+    where: { id: req.params.id },
+    include: { items: true },
+  });
+  if (!existingSale) return res.status(404).json({ error: 'Sale not found.' });
+
+  let updateData = {
+    customerId: customerId || null,
+    notes,
+    discount: parseFloat(discount) || 0,
+    ...(status && { status }),
+    ...(paidAmount !== undefined && { paidAmount: parseFloat(paidAmount) }),
+  };
+
+  if (items && items.length > 0) {
+    let subtotal = 0;
+    let gstAmount = 0;
+    const itemsData = [];
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      const unitPrice = item.unitPrice !== undefined ? parseFloat(item.unitPrice) : parseFloat(product?.price || 0);
+      const gstPct = parseFloat(item.gstPercent || product?.gstPercent || 18);
+      const qty = parseInt(item.quantity) || 1;
+      const itemTotal = qty * unitPrice;
+      const itemGst = (itemTotal * gstPct) / 100;
+      subtotal += itemTotal;
+      gstAmount += itemGst;
+
+      itemsData.push({
+        productId: item.productId,
+        quantity: qty,
+        unitPrice,
+        gstPercent: gstPct,
+        totalPrice: itemTotal + itemGst,
+      });
+    }
+
+    // Delete existing items and recreate
+    await prisma.saleItem.deleteMany({ where: { saleId: req.params.id } });
+
+    updateData.subtotal = subtotal;
+    updateData.gstAmount = gstAmount;
+    updateData.totalAmount = subtotal + gstAmount - (parseFloat(discount) || 0);
+    updateData.items = { create: itemsData };
+  }
+
+  const updated = await prisma.sale.update({
+    where: { id: req.params.id },
+    data: updateData,
+    include: { customer: true, items: { include: { product: true } } },
+  });
+
+  res.json(updated);
+}));
+
+router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
+  const sale = await prisma.sale.findUnique({ where: { id: req.params.id } });
+  if (!sale) return res.status(404).json({ error: 'Sale not found.' });
+
+  // Delete inventory transactions linked to this sale
+  await prisma.inventoryTransaction.deleteMany({
+    where: { referenceType: 'SALE', referenceId: req.params.id }
+  });
+
+  // Delete sale (sale items deleted automatically by cascade)
+  await prisma.sale.delete({ where: { id: req.params.id } });
+
+  res.json({ message: 'Sale order deleted.' });
+}));
+
 module.exports = router;

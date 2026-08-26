@@ -362,12 +362,6 @@ export default function Products() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Company / Brand</label>
-                      <input className="form-input" value={form.company}
-                        onChange={e => setForm({ ...form, company: e.target.value })}
-                        placeholder="Manufacturer or brand" />
-                    </div>
-                    <div className="form-group">
                       <label className="form-label">Supplier</label>
                       <select className="form-select" value={form.supplierId}
                         onChange={e => setForm({ ...form, supplierId: e.target.value })}>

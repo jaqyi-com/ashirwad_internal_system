@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { formatCurrency, formatDate, formatDateTime, getStatusBadge } from '../../utils/helpers';
-import { Plus, X, Trash2, TrendingUp, Download, Eye } from 'lucide-react';
+import { Plus, X, Trash2, TrendingUp, Download, Eye, Edit2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Sales() {
@@ -10,22 +10,28 @@ export default function Sales() {
   const [loading, setLoading]       = useState(true);
   const [customers, setCustomers]   = useState([]);
   const [products, setProducts]     = useState([]);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showModal, setShowModal]   = useState(false);
+  const [editingSale, setEditingSale] = useState(null);
   const [detail, setDetail]         = useState(null);
-  const [form, setForm]             = useState({ customerId: '', notes: '', discount: '0', items: [] });
+  const [form, setForm]             = useState({ customerId: '', status: 'CONFIRMED', notes: '', discount: '0', items: [] });
   const [saving, setSaving]         = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch]         = useState('');
 
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/sales', { params: { status: statusFilter || undefined } });
-      setSales(data.sales); setTotal(data.total);
+      const { data } = await api.get('/sales', { params: { status: statusFilter || undefined, limit: 100 } });
+      setSales(data.sales);
+      setTotal(data.total);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   const loadMeta = async () => {
-    const [cusRes, prodRes] = await Promise.all([api.get('/customers'), api.get('/products', { params: { limit: 500 } })]);
+    const [cusRes, prodRes] = await Promise.all([
+      api.get('/customers'),
+      api.get('/products', { params: { limit: 1500 } })
+    ]);
     setCustomers(cusRes.data);
     setProducts(prodRes.data.products);
   };
@@ -33,7 +39,42 @@ export default function Sales() {
   useEffect(() => { load(); }, [statusFilter]);
   useEffect(() => { loadMeta(); }, []);
 
-  const addItem    = () => setForm(f => ({ ...f, items: [...f.items, { productId: '', quantity: 1, unitPrice: 0 }] }));
+  const openCreate = () => {
+    setEditingSale(null);
+    setForm({ customerId: '', status: 'CONFIRMED', notes: '', discount: '0', items: [] });
+    setShowModal(true);
+  };
+
+  const openEdit = (s) => {
+    setDetail(null);
+    setEditingSale(s);
+    setForm({
+      customerId: s.customerId || '',
+      status: s.status || 'CONFIRMED',
+      notes: s.notes || '',
+      discount: String(s.discount || '0'),
+      items: (s.items || []).map(it => ({
+        productId: it.productId,
+        quantity: it.quantity,
+        unitPrice: parseFloat(it.unitPrice) || 0,
+      })),
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (s) => {
+    if (!confirm(`Are you sure you want to delete sale order "${s.saleNumber}"?`)) return;
+    try {
+      await api.delete(`/sales/${s.id}`);
+      toast.success('Sale order deleted successfully!');
+      if (detail?.id === s.id) setDetail(null);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error deleting sale');
+    }
+  };
+
+  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { productId: '', quantity: 1, unitPrice: 0 }] }));
   const removeItem = (i) => setForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }));
   const updateItem = (i, field, val) => {
     const items = [...form.items];
@@ -48,19 +89,38 @@ export default function Sales() {
   const subtotal = form.items.reduce((s, it) => s + (it.quantity * it.unitPrice || 0), 0);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setSaving(true);
+    e.preventDefault();
+    if (form.items.length === 0) {
+      toast.error('Please add at least one item');
+      return;
+    }
+    setSaving(true);
     try {
-      await api.post('/sales', {
+      const payload = {
         ...form,
         discount: parseFloat(form.discount) || 0,
-        items: form.items.map(it => ({ ...it, quantity: parseInt(it.quantity), unitPrice: parseFloat(it.unitPrice) })),
-      });
-      toast.success('Sale created!');
-      setShowCreate(false);
-      setForm({ customerId: '', notes: '', discount: '0', items: [] });
+        items: form.items.map(it => ({
+          ...it,
+          quantity: parseInt(it.quantity) || 1,
+          unitPrice: parseFloat(it.unitPrice) || 0,
+        })),
+      };
+
+      if (editingSale) {
+        await api.put(`/sales/${editingSale.id}`, payload);
+        toast.success('Sale order updated!');
+      } else {
+        await api.post('/sales', payload);
+        toast.success('Sale order created!');
+      }
+
+      setShowModal(false);
       load();
-    } catch (err) { toast.error(err.response?.data?.error || 'Error creating sale'); }
-    finally { setSaving(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error saving sale');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── PDF Print ──────────────────────────────────────────────
@@ -194,6 +254,14 @@ export default function Sales() {
     setTimeout(() => { win.print(); }, 500);
   };
 
+  const filteredSales = sales.filter(s => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return s.saleNumber.toLowerCase().includes(q) ||
+           (s.customer?.name && s.customer.name.toLowerCase().includes(q)) ||
+           (s.customer?.company && s.customer.company.toLowerCase().includes(q));
+  });
+
   return (
     <div>
       <div className="page-header">
@@ -201,28 +269,39 @@ export default function Sales() {
           <h1 style={{ fontSize: '22px', fontWeight: 700 }}>Sales Orders</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{total} orders</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> New Sale</button>
+        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> New Sale</button>
       </div>
 
-      {/* Status filter */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {['', 'CONFIRMED', 'INVOICED', 'PAID', 'CANCELLED'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)}
-            className={`btn btn-sm ${statusFilter === s ? 'btn-primary' : 'btn-secondary'}`}>
-            {s || 'All'}
-          </button>
-        ))}
+      {/* Filters & Search */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="search-bar" style={{ flex: 1, minWidth: 260, maxWidth: 360 }}>
+          <Search size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <input
+            placeholder="Search by sale no. or customer..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {['', 'CONFIRMED', 'INVOICED', 'PAID', 'CANCELLED'].map(s => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              className={`btn btn-sm ${statusFilter === s ? 'btn-primary' : 'btn-secondary'}`}>
+              {s || 'All'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
       <div className="table-wrapper">
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</div>
-        ) : sales.length === 0 ? (
+        ) : filteredSales.length === 0 ? (
           <div className="empty-state">
             <TrendingUp size={48} />
-            <h3>No sales yet</h3>
-            <button className="btn btn-primary" onClick={() => setShowCreate(true)} style={{ marginTop: 8 }}>
+            <h3>No sales orders found</h3>
+            <button className="btn btn-primary" onClick={openCreate} style={{ marginTop: 8 }}>
               <Plus size={16} /> Create Sale
             </button>
           </div>
@@ -241,7 +320,7 @@ export default function Sales() {
               </tr>
             </thead>
             <tbody>
-              {sales.map(s => (
+              {filteredSales.map(s => (
                 <tr key={s.id} style={{ cursor: 'pointer' }} onClick={() => setDetail(s)}>
                   <td><span className="mono" style={{ fontWeight: 700 }}>{s.saleNumber}</span></td>
                   <td>
@@ -255,8 +334,10 @@ export default function Sales() {
                   <td className="hide-mobile" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{formatDate(s.createdAt)}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-secondary btn-sm btn-icon" title="View" onClick={() => setDetail(s)}><Eye size={13} /></button>
+                      <button className="btn btn-secondary btn-sm btn-icon" title="View Details" onClick={() => setDetail(s)}><Eye size={13} /></button>
                       <button className="btn btn-primary btn-sm btn-icon" title="Download PDF" onClick={() => downloadPDF(s)}><Download size={13} /></button>
+                      <button className="btn btn-secondary btn-sm btn-icon" title="Edit Order" onClick={() => openEdit(s)}><Edit2 size={13} /></button>
+                      <button className="btn btn-danger btn-sm btn-icon" title="Delete Order" onClick={() => handleDelete(s)}><Trash2 size={13} /></button>
                     </div>
                   </td>
                 </tr>
@@ -279,6 +360,8 @@ export default function Sales() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(detail)}><Edit2 size={13} /> Edit</button>
+                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(detail)}><Trash2 size={13} /> Delete</button>
                 <button className="btn btn-primary btn-sm" onClick={() => downloadPDF(detail)}><Download size={13} /> Download PDF</button>
                 <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setDetail(null)}><X size={16} /></button>
               </div>
@@ -311,6 +394,7 @@ export default function Sales() {
                   {[
                     ['Sale Number', detail.saleNumber],
                     ['Date', formatDate(detail.createdAt)],
+                    ['Status', detail.status],
                     ['Paid Amount', formatCurrency(detail.paidAmount)],
                     detail.createdBy ? ['Created By', detail.createdBy.name] : null,
                   ].filter(Boolean).map(([label, value]) => (
@@ -384,19 +468,20 @@ export default function Sales() {
 
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDetail(null)}>Close</button>
+              <button className="btn btn-secondary" onClick={() => openEdit(detail)}><Edit2 size={14} /> Edit</button>
               <button className="btn btn-primary" onClick={() => downloadPDF(detail)}><Download size={14} /> Download PDF</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Create Sale Modal ── */}
-      {showCreate && (
-        <div className="modal-overlay">
+      {/* ── Create / Edit Sale Modal ── */}
+      {showModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="modal modal-lg">
             <div className="modal-header">
-              <h2>New Sale Order</h2>
-              <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setShowCreate(false)}><X size={16} /></button>
+              <h2>{editingSale ? `Edit Sale Order (${editingSale.saleNumber})` : 'New Sale Order'}</h2>
+              <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setShowModal(false)}><X size={16} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -406,6 +491,15 @@ export default function Sales() {
                     <select className="form-select" value={form.customerId} onChange={e => setForm({ ...form, customerId: e.target.value })}>
                       <option value="">Walk-in Customer</option>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ''}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Status</label>
+                    <select className="form-select" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                      <option value="CONFIRMED">CONFIRMED</option>
+                      <option value="INVOICED">INVOICED</option>
+                      <option value="PAID">PAID</option>
+                      <option value="CANCELLED">CANCELLED</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -421,7 +515,7 @@ export default function Sales() {
                   </div>
                   {form.items.length === 0 && (
                     <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border)', borderRadius: 8 }}>
-                      Add products to sell
+                      Add products to this sale order
                     </div>
                   )}
                   {form.items.map((item, i) => (
@@ -430,7 +524,7 @@ export default function Sales() {
                         {i === 0 && <label className="form-label">Product</label>}
                         <select className="form-select" value={item.productId} onChange={e => updateItem(i, 'productId', e.target.value)} required>
                           <option value="">Select Product</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name} — Stock: {p.currentStock} {p.unit}</option>)}
+                          {products.map(p => <option key={p.id} value={p.id}>{p.name} {p.partNumber ? `(${p.partNumber})` : ''} — Stock: {p.currentStock} {p.unit}</option>)}
                         </select>
                       </div>
                       <div className="form-group" style={{ width: 90 }}>
@@ -462,9 +556,9 @@ export default function Sales() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving || form.items.length === 0}>
-                  {saving ? 'Creating...' : 'Confirm Sale'}
+                  {saving ? 'Saving...' : editingSale ? 'Update Sale Order' : 'Confirm Sale Order'}
                 </button>
               </div>
             </form>

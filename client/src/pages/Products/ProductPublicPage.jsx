@@ -133,7 +133,6 @@ export default function ProductPublicPage() {
 
             {/* Detail rows */}
             <div style={styles.detailRows}>
-              {product.company && <DetailRow icon={<Layers size={14} />} label="Brand / Company" value={product.company} />}
               {product.partNumber && <DetailRow icon={<Hash size={14} />} label="Part Number" value={product.partNumber} />}
               {product.location && <DetailRow icon={<MapPin size={14} />} label="Location" value={product.location} />}
               {product.barcode && <DetailRow icon={<Tag size={14} />} label="Barcode" value={product.barcode} />}
