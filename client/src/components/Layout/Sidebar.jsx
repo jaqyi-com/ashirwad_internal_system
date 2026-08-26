@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, Tags, Truck, ShoppingCart, TrendingUp,
   Users, FileText, BarChart2, Settings, ChevronLeft, ChevronRight,
   Layers, ArrowLeftRight, UserCheck, ClipboardList,
-  History, Fingerprint, Wifi, UsersRound, MonitorSmartphone
+  History, Fingerprint, Wifi, UsersRound, MonitorSmartphone, Smartphone
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -58,6 +58,7 @@ const navItems = [
       { label: 'Users', path: '/users', icon: Users },
       { label: 'Audit Logs', path: '/audit', icon: ClipboardList },
       { label: 'Settings', path: '/settings', icon: Settings },
+      { label: 'Download App', path: '/download', icon: Smartphone },
     ],
   },
 ];

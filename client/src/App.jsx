@@ -26,6 +26,7 @@ import AttendanceReport from './pages/Attendance/AttendanceReport';
 import Employees from './pages/Attendance/Employees';
 import DeviceSettings from './pages/Attendance/DeviceSettings';
 import ProductPublicPage from './pages/Products/ProductPublicPage';
+import DownloadApp from './pages/DownloadApp/DownloadApp';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuthStore();
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="users" element={<Users />} />
           <Route path="audit" element={<Audit />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="download" element={<DownloadApp />} />
           <Route path="attendance" element={<AttendanceDashboard />} />
           <Route path="attendance/report" element={<AttendanceReport />} />
           <Route path="attendance/employees" element={<Employees />} />
