@@ -91,7 +91,6 @@ export default function Reports() {
                       <th>Product</th>
                       <th>Category</th>
                       <th>Stock Qty</th>
-                      <th>Purchase Price</th>
                       <th>Stock Value</th>
                       <th>Selling Price</th>
                       <th>Potential Revenue</th>
@@ -106,7 +105,6 @@ export default function Reports() {
                         </td>
                         <td>{p.category || '—'}</td>
                         <td style={{ fontWeight: 600 }}>{formatNumber(p.currentStock)}</td>
-                        <td>{formatCurrency(p.purchasePrice)}</td>
                         <td style={{ fontWeight: 700, color: 'var(--accent)' }}>{formatCurrency(p.stockValue)}</td>
                         <td>{formatCurrency(p.sellingPrice)}</td>
                         <td style={{ fontWeight: 700, color: 'var(--green)' }}>{formatCurrency(p.potentialRevenue)}</td>

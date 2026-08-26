@@ -419,11 +419,7 @@ export default function Products() {
                       <input type="number" min="0" step="0.01" className="form-input"
                         value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Purchase Price (₹)</label>
-                      <input type="number" min="0" step="0.01" className="form-input"
-                        value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: e.target.value })} />
-                    </div>
+
                     <div className="form-group">
                       <label className="form-label">GST</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

@@ -26,7 +26,7 @@ export default function Header({ title, subtitle }) {
 
   return (
     <div className="header">
-      <div>
+      <div className="header-left">
         <div className="header-title">{title}</div>
         {subtitle && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{subtitle}</div>}
       </div>
@@ -62,7 +62,7 @@ export default function Header({ title, subtitle }) {
             }}>
               {user?.name?.charAt(0).toUpperCase()}
             </div>
-            <div style={{ textAlign: 'left' }}>
+            <div style={{ textAlign: 'left' }} className="header-user-name">
               <div style={{ fontSize: '13px', fontWeight: 600 }}>{user?.name}</div>
               <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{user?.role}</div>
             </div>

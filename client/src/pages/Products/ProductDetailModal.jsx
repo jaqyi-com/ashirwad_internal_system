@@ -112,10 +112,7 @@ export default function ProductDetailModal({ product, onClose, onEdit }) {
                   <div className="price-card-label">Selling Price</div>
                   <div className="price-card-value">{formatCurrency(product.price)}</div>
                 </div>
-                <div className="price-card">
-                  <div className="price-card-label">Purchase Price</div>
-                  <div className="price-card-value secondary">{formatCurrency(product.purchasePrice)}</div>
-                </div>
+
                 <div className="price-card">
                   <div className="price-card-label">GST</div>
                   <div className="price-card-value">{product.gstPercent}%</div>
