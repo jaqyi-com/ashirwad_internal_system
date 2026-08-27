@@ -36,24 +36,29 @@ export default function MoreScreen() {
     {
       title: 'Inventory',
       rows: [
-        { icon: 'users', label: 'Suppliers',  sub: 'View all suppliers',  onPress: () => {} },
-        { icon: 'user',  label: 'Customers',  sub: 'View all customers',  onPress: () => {} },
-        { icon: 'tag',   label: 'Categories', sub: 'Product categories',  onPress: () => {} },
-        { icon: 'bar-chart-2', label: 'Reports', sub: 'Analytics & insights', onPress: () => {} },
+        { icon: 'users', label: 'Suppliers',  sub: 'View all suppliers',  onPress: () => router.push('/more/suppliers') },
+        { icon: 'user',  label: 'Customers',  sub: 'View all customers',  onPress: () => router.push('/more/customers') },
+        { icon: 'tag',   label: 'Categories', sub: 'Product categories',  onPress: () => router.push('/more/categories') },
+        { icon: 'bar-chart-2', label: 'Reports', sub: 'Analytics & insights', onPress: () => router.push('/more/reports') },
       ],
     },
     {
       title: 'Stock',
       rows: [
-        { icon: 'refresh-cw',    label: 'Stock Movements',   sub: 'Inventory audit trail',   onPress: () => {} },
-        { icon: 'sliders',       label: 'Stock Adjustments', sub: 'Correct stock levels',    onPress: () => {} },
-        { icon: 'alert-triangle',label: 'Low Stock Alerts',  sub: 'Items that need restocking', onPress: () => {} },
+        { icon: 'refresh-cw',    label: 'Stock Movements',   sub: 'Inventory audit trail',   onPress: () => router.push('/more/movements') },
+        { icon: 'sliders',       label: 'Stock Adjustments', sub: 'Correct stock levels',    onPress: () => router.push('/more/adjustments') },
+        { icon: 'alert-triangle',label: 'Low Stock Alerts',  sub: 'Items that need restocking', onPress: () => router.push('/more/lowstock') },
+      ],
+    },
+    {
+      title: 'Operations',
+      rows: [
+        { icon: 'clock', label: 'Attendance', sub: 'Biometric logs & devices', onPress: () => router.push('/more/attendance') },
       ],
     },
     {
       title: 'Account',
       rows: [
-        { icon: 'settings', label: 'Settings', sub: 'App preferences', onPress: () => {} },
         {
           icon: 'log-out', label: 'Sign Out', sub: user?.email ?? '',
           onPress: handleLogout, danger: true,
