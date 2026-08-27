@@ -1,9 +1,10 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image,
+  View, Text, TouchableOpacity, Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Colors, Radius, Spacing } from '../constants/Colors';
+import { useTheme } from '../store/themeStore';
+import { Radius, Spacing } from '../constants/Colors';
 
 interface ListItemProps {
   title: string;
@@ -22,7 +23,7 @@ export default function ListItem({
   title,
   subtitle,
   badge,
-  badgeColor = Colors.green,
+  badgeColor,
   badgeBg    = 'rgba(16,185,129,0.12)',
   imageUri,
   iconPlaceholder,
@@ -30,115 +31,74 @@ export default function ListItem({
   onPress,
   showChevron = true,
 }: ListItemProps) {
+  const { colors } = useTheme();
+  const bColor = badgeColor ?? colors.green;
+
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.7}>
-      {/* Left — thumbnail or icon */}
-      <View style={styles.thumb}>
+    <TouchableOpacity
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.bgCard,
+        borderRadius: Radius.lg,
+        padding: Spacing.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        marginBottom: Spacing.sm,
+      }}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      {/* Left thumbnail */}
+      <View style={{ marginRight: Spacing.md, flexShrink: 0 }}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.thumbImg} />
+          <Image
+            source={{ uri: imageUri }}
+            style={{
+              width: 44, height: 44, borderRadius: Radius.sm,
+              borderWidth: 1, borderColor: colors.border,
+            }}
+          />
         ) : (
-          <View style={styles.thumbPlaceholder}>
+          <View style={{
+            width: 44, height: 44, borderRadius: Radius.sm,
+            backgroundColor: colors.bgSecondary,
+            alignItems: 'center', justifyContent: 'center',
+            borderWidth: 1, borderColor: colors.border,
+          }}>
             {iconPlaceholder ?? (
-              <Feather name="package" size={18} color={Colors.textMuted} />
+              <Feather name="package" size={18} color={colors.textMuted} />
             )}
           </View>
         )}
       </View>
 
-      {/* Middle — name + sub */}
-      <View style={styles.middle}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      {/* Middle */}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }} numberOfLines={1}>
+          {title}
+        </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }} numberOfLines={1}>
+            {subtitle}
+          </Text>
         ) : null}
       </View>
 
-      {/* Right — badge / label + chevron */}
-      <View style={styles.right}>
+      {/* Right */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: Spacing.sm }}>
         {badge ? (
-          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-            <Text style={[styles.badgeText, { color: badgeColor }]}>{badge}</Text>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full, backgroundColor: badgeBg }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: bColor }}>{badge}</Text>
           </View>
         ) : null}
         {rightLabel ? (
-          <Text style={styles.rightLabel}>{rightLabel}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>{rightLabel}</Text>
         ) : null}
         {showChevron && (
-          <Feather name="chevron-right" size={16} color={Colors.textMuted} style={styles.chevron} />
+          <Feather name="chevron-right" size={16} color={colors.textMuted} style={{ marginLeft: 2 }} />
         )}
       </View>
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.bgCard,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.sm,
-  },
-  thumb: {
-    marginRight: Spacing.md,
-    flexShrink: 0,
-  },
-  thumbImg: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  thumbPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bgSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  middle: {
-    flex: 1,
-    minWidth: 0,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  right: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-    marginLeft: Spacing.sm,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  rightLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  chevron: {
-    marginLeft: 2,
-  },
-});

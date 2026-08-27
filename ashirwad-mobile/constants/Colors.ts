@@ -1,5 +1,5 @@
-// Design tokens matching the web app's dark theme
-export const Colors = {
+// Design tokens — Dark & Light palettes
+export const darkColors = {
   // Backgrounds
   bgPrimary:    '#0f0f13',
   bgSecondary:  '#16161f',
@@ -34,10 +34,53 @@ export const Colors = {
   tabBar:       '#1a1a26',
   tabBarBorder: '#2a2a3d',
 
-  // Gradients (used as array in LinearGradient)
+  // Gradients
   gradientHero: ['#4f46e5', '#7c3aed'] as [string, string],
   gradientCard: ['#1e1e2a', '#252535'] as [string, string],
 };
+
+export const lightColors = {
+  // Backgrounds
+  bgPrimary:    '#f4f4fb',
+  bgSecondary:  '#ebebf8',
+  bgCard:       '#ffffff',
+  bgCardHover:  '#f0f0fa',
+
+  // Borders
+  border:       '#dcdcf0',
+  borderLight:  '#c8c8e8',
+
+  // Text
+  textPrimary:  '#111128',
+  textSecondary:'#4a4a6a',
+  textMuted:    '#9090b0',
+
+  // Accent
+  accent:       '#6366f1',
+  accentLight:  '#4f46e5',
+  accentGlow:   'rgba(99,102,241,0.10)',
+  purple:       '#7c3aed',
+
+  // Status
+  green:        '#059669',
+  greenLight:   '#10b981',
+  red:          '#dc2626',
+  redLight:     '#ef4444',
+  yellow:       '#d97706',
+  blue:         '#2563eb',
+  orange:       '#ea580c',
+
+  // Tab bar
+  tabBar:       '#ffffff',
+  tabBarBorder: '#dcdcf0',
+
+  // Gradients
+  gradientHero: ['#4f46e5', '#7c3aed'] as [string, string],
+  gradientCard: ['#ffffff', '#f0f0fa'] as [string, string],
+};
+
+// Default export keeps backward-compat for any files not yet migrated
+export const Colors = darkColors;
 
 export const Radius = {
   sm:  8,

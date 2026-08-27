@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import api from '../../services/api';
+import { useTheme } from '../../store/themeStore';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
 
 interface Category {
@@ -113,7 +114,7 @@ export default function CategoriesScreen() {
   const parentCandidates = categories.filter(c => !c.parentId && (!selectedCategory || c.id !== selectedCategory.id));
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

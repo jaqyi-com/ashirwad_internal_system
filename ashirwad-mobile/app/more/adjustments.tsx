@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import api from '../../services/api';
+import { useTheme } from '../../store/themeStore';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
 
 interface Adjustment {
@@ -33,8 +34,9 @@ interface Product {
 }
 
 export default function AdjustmentsScreen() {
-  const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [adjustments, setAdjustments] = useState<Adjustment[]>([]); 
+  const { colors } = useTheme();
+  const [products, setProducts] = useState<Product[]>([]); 
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   
@@ -137,7 +139,7 @@ export default function AdjustmentsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

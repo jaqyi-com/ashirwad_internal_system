@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import api from '../../services/api';
+import { useTheme } from '../../store/themeStore';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
 
 interface Device {
@@ -38,10 +39,11 @@ interface AttendanceLog {
 
 export default function AttendanceScreen() {
   const [activeTab, setActiveTab] = useState<'today' | 'employees' | 'devices'>('today');
-  const [logs, setLogs] = useState<AttendanceLog[]>([]);
+  const [logs, setLogs] = useState<AttendanceLog[]>([]); 
+  const { colors } = useTheme();
   const [summary, setSummary] = useState({ total: 0, present: 0, absent: 0 });
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]); 
+  const [devices, setDevices] = useState<Device[]>([]); 
   const [loading, setLoading] = useState(true);
 
   // Syncing indicators
@@ -134,7 +136,7 @@ export default function AttendanceScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

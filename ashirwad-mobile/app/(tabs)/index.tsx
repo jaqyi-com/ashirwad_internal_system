@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl,
-  TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
+import { useTheme } from '../../store/themeStore';
 import StatCard from '../../components/StatCard';
 import ListItem from '../../components/ListItem';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
@@ -18,6 +19,7 @@ const fmtCur = (n: number) =>
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [data, setData]         = useState<any>(null);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,8 +37,8 @@ export default function DashboardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.accent} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgPrimary }}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -44,16 +46,16 @@ export default function DashboardScreen() {
   const { stats, recentTransactions, topProducts } = data || {};
 
   const statCards = [
-    { label: 'Total Products', value: fmt(stats?.totalProducts), icon: 'package',    color: Colors.accentLight, bg: Colors.accentGlow },
-    { label: 'Total Stock',    value: fmt(stats?.totalStock),    icon: 'layers',      color: Colors.blue,        bg: 'rgba(59,130,246,0.12)' },
-    { label: 'Inv. Value',     value: fmtCur(stats?.inventoryValue), icon: 'dollar-sign', color: Colors.green, bg: 'rgba(16,185,129,0.12)' },
-    { label: 'Out of Stock',   value: fmt(stats?.outOfStock),    icon: 'x-circle',    color: Colors.red,         bg: 'rgba(239,68,68,0.12)' },
-    { label: "Today's Sales",  value: fmtCur(stats?.todaySales?.amount), icon: 'trending-up', color: Colors.green, bg: 'rgba(16,185,129,0.12)', sub: `${stats?.todaySales?.count ?? 0} orders` },
-    { label: "Today's Purchases", value: fmtCur(stats?.todayPurchases?.amount), icon: 'shopping-cart', color: Colors.purple, bg: 'rgba(139,92,246,0.12)', sub: `${stats?.todayPurchases?.count ?? 0} orders` },
+    { label: 'Total Products', value: fmt(stats?.totalProducts), icon: 'package',    color: colors.accentLight, bg: colors.accentGlow },
+    { label: 'Total Stock',    value: fmt(stats?.totalStock),    icon: 'layers',      color: colors.blue,        bg: 'rgba(59,130,246,0.12)' },
+    { label: 'Inv. Value',     value: fmtCur(stats?.inventoryValue), icon: 'dollar-sign', color: colors.green, bg: 'rgba(16,185,129,0.12)' },
+    { label: 'Out of Stock',   value: fmt(stats?.outOfStock),    icon: 'x-circle',    color: colors.red,         bg: 'rgba(239,68,68,0.12)' },
+    { label: "Today's Sales",  value: fmtCur(stats?.todaySales?.amount), icon: 'trending-up', color: colors.green, bg: 'rgba(16,185,129,0.12)', sub: `${stats?.todaySales?.count ?? 0} orders` },
+    { label: "Today's Purchases", value: fmtCur(stats?.todayPurchases?.amount), icon: 'shopping-cart', color: colors.purple, bg: 'rgba(139,92,246,0.12)', sub: `${stats?.todayPurchases?.count ?? 0} orders` },
   ];
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgPrimary }} edges={['top']}>
       {/* Header gradient */}
       <LinearGradient
         colors={['#3730a3', '#6d28d9']}
@@ -72,19 +74,19 @@ export default function DashboardScreen() {
       </LinearGradient>
 
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => load(true)}
-            tintColor={Colors.accent}
+            tintColor={colors.accent}
           />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Stat grid */}
-        <Text style={styles.sectionTitle}>Overview</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Overview</Text>
         <View style={styles.statGrid}>
           {statCards.map((s) => (
             <StatCard
@@ -102,7 +104,7 @@ export default function DashboardScreen() {
         {/* Top Products */}
         {topProducts?.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Top Products</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Top Products</Text>
             {topProducts.slice(0, 5).map((p: any) => (
               <ListItem
                 key={p.id}
@@ -119,7 +121,7 @@ export default function DashboardScreen() {
         {/* Recent transactions */}
         {recentTransactions?.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Recent Activity</Text>
             {recentTransactions.slice(0, 6).map((t: any) => (
               <ListItem
                 key={t.id}
@@ -127,7 +129,7 @@ export default function DashboardScreen() {
                 subtitle={new Date(t.createdAt).toLocaleDateString('en-IN')}
                 badge={t.transactionType?.replace('_', ' ')}
                 badgeColor={
-                  t.transactionType?.includes('IN') ? Colors.green : Colors.red
+                  t.transactionType?.includes('IN') ? colors.green : colors.red
                 }
                 badgeBg={
                   t.transactionType?.includes('IN')
@@ -153,40 +155,18 @@ function getGreeting() {
   return 'Evening';
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgPrimary },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgPrimary },
+const styles = {
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.xl,
     paddingBottom: 28,
   },
-  greeting: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-  userName:  { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 2 },
-  avatarBox: {
-    width: 42, height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  scroll: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: 40 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
   statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: 10,
   },
-});
+};

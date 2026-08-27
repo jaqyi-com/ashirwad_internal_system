@@ -7,10 +7,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../store/authStore';
+import { useTheme } from '../store/themeStore';
 import { Colors, Radius, Spacing } from '../constants/Colors';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { colors } = useTheme();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd]   = useState(false);
@@ -36,7 +38,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={{ flex: 1, backgroundColor: colors.bgPrimary }}>
       {/* Hero gradient */}
       <LinearGradient
         colors={['#3730a3', '#6d28d9']}
@@ -67,13 +69,15 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputRow}>
-              <Feather name="mail" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+        <View style={[styles.inputIcon, { marginRight: 8 }]}>
+              <Feather name="mail" size={16} color={colors.textMuted} style={styles.inputIcon} />
+            </View>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.textPrimary }]}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -85,18 +89,18 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputRow}>
-              <Feather name="lock" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <Feather name="lock" size={16} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 1, color: colors.textPrimary }]}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showPwd}
                 autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPwd(v => !v)} style={styles.eyeBtn}>
-                <Feather name={showPwd ? 'eye-off' : 'eye'} size={16} color={Colors.textMuted} />
+                <Feather name={showPwd ? 'eye-off' : 'eye'} size={16} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -127,7 +131,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgPrimary },
+  root: { flex: 1 },
   hero: {
     alignItems: 'center',
     justifyContent: 'center',

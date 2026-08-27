@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import api from '../../services/api';
+import { useTheme } from '../../store/themeStore';
 import SearchBar from '../../components/SearchBar';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
 
@@ -33,6 +34,7 @@ export default function ProductsScreen() {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const { colors } = useTheme();
 
   // Detail / Edit
   const [selected, setSelected]   = useState<any>(null);
@@ -221,14 +223,14 @@ export default function ProductsScreen() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Products</Text>
-          <Text style={styles.count}>{total.toLocaleString('en-IN')} items</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Products</Text>
+          <Text style={[styles.count, { color: colors.textMuted }]}>{total.toLocaleString('en-IN')} items</Text>
         </View>
-        <TouchableOpacity onPress={openAdd} style={styles.addBtn}>
+        <TouchableOpacity onPress={openAdd} style={[styles.addBtn, { backgroundColor: colors.accent }]}>
           <Feather name="plus" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -249,26 +251,26 @@ export default function ProductsScreen() {
           const img = item.productImages?.[0] || item.designImages?.[0];
           return (
             <TouchableOpacity
-              style={styles.card}
+              style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
               onPress={() => setSelected(item)}
               activeOpacity={0.75}
             >
               {img ? (
                 <Image source={{ uri: img }} style={styles.thumb} />
               ) : (
-                <View style={styles.thumbPlaceholder}>
-                  <Feather name="package" size={22} color={Colors.textMuted} />
+                <View style={[styles.thumbPlaceholder, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+                  <Feather name="package" size={22} color={colors.textMuted} />
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+                <Text style={[styles.cardName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
                 {item.partNumber ? (
-                  <Text style={styles.cardSub}>Part: {item.partNumber}</Text>
+                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>Part: {item.partNumber}</Text>
                 ) : item.category?.name ? (
-                  <Text style={styles.cardSub}>{item.category.name}</Text>
+                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>{item.category.name}</Text>
                 ) : null}
                 {item.price ? (
-                  <Text style={styles.cardPrice}>
+                  <Text style={[styles.cardPrice, { color: colors.green }]}>
                     ₹{Number(item.price).toLocaleString('en-IN')}
                   </Text>
                 ) : null}
@@ -279,18 +281,18 @@ export default function ProductsScreen() {
                 </View>
                 <View style={styles.cardActions}>
                   <TouchableOpacity
-                    style={styles.actionBtn}
+                    style={[styles.actionBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
                     onPress={() => openEdit(item)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                   >
-                    <Feather name="edit-2" size={14} color={Colors.accentLight} />
+                    <Feather name="edit-2" size={14} color={colors.accentLight} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, { borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)' }]}
                     onPress={() => handleDelete(item)}
                     hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
                   >
-                    <Feather name="trash-2" size={14} color={Colors.red} />
+                    <Feather name="trash-2" size={14} color={colors.red} />
                   </TouchableOpacity>
                 </View>
               </View>

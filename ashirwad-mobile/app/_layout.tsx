@@ -2,11 +2,12 @@ import { useEffect } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../store/authStore';
+import { ThemeProvider, useTheme } from '../store/themeStore';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Colors } from '../constants/Colors';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     if (loading) return;
@@ -19,35 +20,36 @@ function RootLayoutNav() {
 
   if (loading) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color={Colors.accent} />
+      <View style={[styles.loader, { backgroundColor: colors.bgPrimary }]}>
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.bgPrimary} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </>
   );
 }
 
 export default function RootLayout() {
   return (
-    <View style={{ flex: 1 }}>
+    <ThemeProvider>
       <AuthProvider>
-        <StatusBar style="light" backgroundColor={Colors.bgPrimary} />
         <RootLayoutNav />
       </AuthProvider>
-    </View>
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   loader: {
     flex: 1,
-    backgroundColor: Colors.bgPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,12 +1,12 @@
-import { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Linking,
+  Alert, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../store/authStore';
+import { useTheme } from '../../store/themeStore';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
 
 interface MenuRow {
@@ -20,6 +20,7 @@ interface MenuRow {
 
 export default function MoreScreen() {
   const { user, logout } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -68,112 +69,138 @@ export default function MoreScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Profile card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
+      <View style={[styles.profileCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+          <Text style={[styles.avatarText, { color: colors.accentLight }]}>
             {(user?.name ?? 'U')[0].toUpperCase()}
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>{user?.name ?? '—'}</Text>
-          <Text style={styles.profileEmail}>{user?.email ?? '—'}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>{user?.role ?? 'User'}</Text>
+          <Text style={[styles.profileName, { color: colors.textPrimary }]}>{user?.name ?? '—'}</Text>
+          <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email ?? '—'}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+            <Text style={[styles.roleBadgeText, { color: colors.accentLight }]}>{user?.role ?? 'User'}</Text>
           </View>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* ── Theme Toggle ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Appearance</Text>
+          <View style={[styles.sectionCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={styles.menuRow}>
+              <View style={[styles.menuIcon, { backgroundColor: colors.accentGlow }]}>
+                <Feather
+                  name={isDark ? 'moon' : 'sun'}
+                  size={17}
+                  color={colors.accentLight}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>
+                  {isDark ? 'Dark Mode' : 'Light Mode'}
+                </Text>
+                <Text style={[styles.menuSub, { color: colors.textMuted }]}>
+                  {isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+                </Text>
+              </View>
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: colors.border, true: colors.accentGlow }}
+                thumbColor={isDark ? colors.accentLight : colors.textMuted}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* ── Other Sections ── */}
         {sections.map(section => (
           <View key={section.title} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionCard}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
+            <View style={[styles.sectionCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
               {section.rows.map((row, idx) => (
                 <TouchableOpacity
                   key={row.label}
                   style={[
                     styles.menuRow,
-                    idx < section.rows.length - 1 && styles.menuRowBorder,
+                    idx < section.rows.length - 1 && [styles.menuRowBorder, { borderBottomColor: colors.border }],
                   ]}
                   onPress={row.onPress}
                   activeOpacity={0.7}
                 >
                   <View style={[
                     styles.menuIcon,
-                    { backgroundColor: row.danger ? 'rgba(239,68,68,0.12)' : Colors.accentGlow },
+                    { backgroundColor: row.danger ? 'rgba(239,68,68,0.12)' : colors.accentGlow },
                   ]}>
                     <Feather
                       name={row.icon as any}
                       size={17}
-                      color={row.danger ? Colors.red : Colors.accentLight}
+                      color={row.danger ? colors.red : colors.accentLight}
                     />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[
                       styles.menuLabel,
-                      row.danger && { color: Colors.red },
+                      { color: row.danger ? colors.red : colors.textPrimary },
                     ]}>{row.label}</Text>
                     {row.sub ? (
-                      <Text style={styles.menuSub}>{row.sub}</Text>
+                      <Text style={[styles.menuSub, { color: colors.textMuted }]}>{row.sub}</Text>
                     ) : null}
                   </View>
-                  <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+                  <Feather name="chevron-right" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-        <Text style={styles.version}>Ashirwad IMS · v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.textMuted }]}>Ashirwad IMS · v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgPrimary },
+  root: { flex: 1 },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.lg,
-    backgroundColor: Colors.bgCard,
     margin: Spacing.lg,
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   avatar: {
     width: 52, height: 52, borderRadius: 26,
-    background: Colors.accentGlow,
-    backgroundColor: Colors.accentGlow,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.accent,
+    borderWidth: 2,
   },
-  avatarText: { fontSize: 22, fontWeight: '800', color: Colors.accentLight },
-  profileName: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary },
-  profileEmail: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  avatarText: { fontSize: 22, fontWeight: '800' },
+  profileName: { fontSize: 16, fontWeight: '800' },
+  profileEmail: { fontSize: 12, marginTop: 2 },
   roleBadge: {
     marginTop: 6,
     alignSelf: 'flex-start',
-    backgroundColor: Colors.accentGlow,
     borderRadius: Radius.full,
     paddingHorizontal: 8, paddingVertical: 2,
-    borderWidth: 1, borderColor: Colors.accent,
+    borderWidth: 1,
   },
-  roleBadgeText: { fontSize: 10, fontWeight: '700', color: Colors.accentLight, textTransform: 'uppercase' },
+  roleBadgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   section: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
   sectionTitle: {
     fontSize: 11, fontWeight: '700',
-    color: Colors.textMuted, textTransform: 'uppercase',
+    textTransform: 'uppercase',
     letterSpacing: 0.8, marginBottom: Spacing.sm, paddingLeft: 4,
   },
   sectionCard: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Radius.lg,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   menuRow: {
@@ -181,15 +208,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg, paddingVertical: 13,
     gap: 12,
   },
-  menuRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  menuRowBorder: { borderBottomWidth: 1 },
   menuIcon: {
     width: 34, height: 34, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
   },
-  menuLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  menuSub: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  menuLabel: { fontSize: 14, fontWeight: '600' },
+  menuSub: { fontSize: 11, marginTop: 1 },
   version: {
     textAlign: 'center', fontSize: 11,
-    color: Colors.textMuted, marginTop: Spacing.lg,
+    marginTop: Spacing.lg,
   },
 });
