@@ -154,8 +154,72 @@ router.post('/:id/receive', authenticate, asyncHandler(async (req, res) => {
   res.json({ message: 'Goods received successfully.' });
 }));
 
-// DELETE /api/purchases/:id (cancel)
+// PUT /api/purchases/:id (update order details and items)
+router.put('/:id', authenticate, asyncHandler(async (req, res) => {
+  const { supplierId, items, notes, expectedDate, status } = req.body;
+  const existing = await prisma.purchaseOrder.findUnique({
+    where: { id: req.params.id },
+    include: { items: true },
+  });
+  if (!existing) return res.status(404).json({ error: 'Purchase order not found.' });
+
+  let subtotal = 0;
+  let gstAmount = 0;
+  let itemsData = undefined;
+
+  if (items && items.length > 0) {
+    itemsData = items.map((item) => {
+      const qty = parseInt(item.quantity || item.orderedQty) || 1;
+      const price = parseFloat(item.unitPrice) || 0;
+      const total = qty * price;
+      subtotal += total;
+      return { productId: item.productId, orderedQty: qty, unitPrice: price, totalPrice: total };
+    });
+
+    const productIds = items.map(i => i.productId);
+    const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, gstPercent: true } });
+    const gstMap = Object.fromEntries(products.map(p => [p.id, parseFloat(p.gstPercent)]));
+    items.forEach(item => {
+      const qty = parseInt(item.quantity || item.orderedQty) || 1;
+      const price = parseFloat(item.unitPrice) || 0;
+      const gst = (qty * price * (gstMap[item.productId] || 18)) / 100;
+      gstAmount += gst;
+    });
+
+    await prisma.purchaseOrderItem.deleteMany({
+      where: { purchaseOrderId: req.params.id },
+    });
+  } else {
+    subtotal = parseFloat(existing.subtotal);
+    gstAmount = parseFloat(existing.gstAmount);
+  }
+
+  const updatedOrder = await prisma.purchaseOrder.update({
+    where: { id: req.params.id },
+    data: {
+      supplierId: supplierId || existing.supplierId,
+      notes: notes !== undefined ? notes : existing.notes,
+      expectedDate: expectedDate ? new Date(expectedDate) : existing.expectedDate,
+      status: status || existing.status,
+      subtotal,
+      gstAmount,
+      totalAmount: subtotal + gstAmount,
+      items: itemsData ? { create: itemsData } : undefined,
+    },
+    include: { supplier: true, items: { include: { product: true } } },
+  });
+
+  res.json(updatedOrder);
+}));
+
+// DELETE /api/purchases/:id (cancel or delete)
 router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
+  const { hard } = req.query;
+  if (hard === 'true') {
+    await prisma.purchaseOrderItem.deleteMany({ where: { purchaseOrderId: req.params.id } });
+    await prisma.purchaseOrder.delete({ where: { id: req.params.id } });
+    return res.json({ message: 'Purchase order deleted permanently.' });
+  }
   await prisma.purchaseOrder.update({ where: { id: req.params.id }, data: { status: 'CANCELLED' } });
   res.json({ message: 'Purchase order cancelled.' });
 }));

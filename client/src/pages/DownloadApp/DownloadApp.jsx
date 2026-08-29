@@ -3,7 +3,7 @@ import './DownloadApp.css';
 
 const APK_URL = '/ashirwad-ims.apk';
 const APK_VERSION = '1.0.0';
-const APK_SIZE = '63 MB';
+const APK_SIZE = '41 MB';
 
 const features = [
   { icon: Package,      label: 'Products',  desc: 'Full inventory with search & details' },

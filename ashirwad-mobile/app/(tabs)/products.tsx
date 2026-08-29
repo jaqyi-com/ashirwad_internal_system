@@ -3,14 +3,17 @@ import {
   View, Text, StyleSheet, FlatList,
   RefreshControl, ActivityIndicator, TouchableOpacity,
   Modal, ScrollView, Image, TextInput,
-  Alert, KeyboardAvoidingView, Platform,
+  Alert, KeyboardAvoidingView, Platform, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
 import { useTheme } from '../../store/themeStore';
 import SearchBar from '../../components/SearchBar';
 import { Colors, Spacing, Radius } from '../../constants/Colors';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const GST_OPTIONS = ['0', '5', '12', '18', '28'];
@@ -23,6 +26,8 @@ const INITIAL_FORM = {
   location: '', unit: 'pcs', barcode: '',
   price: '', purchasePrice: '',
   gstPercent: '18', currentStock: '0', minStock: '0',
+  productImages: [] as string[],
+  designImages: [] as string[],
 };
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
@@ -34,7 +39,7 @@ export default function ProductsScreen() {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   // Detail / Edit
   const [selected, setSelected]   = useState<any>(null);
@@ -65,9 +70,9 @@ export default function ProductsScreen() {
       const { data } = await api.get('/products', {
         params: { search: q, page: p, limit: 20 },
       });
-      if (p === 1) setProducts(data.products);
-      else setProducts(prev => [...prev, ...data.products]);
-      setTotal(data.total);
+      if (p === 1) setProducts(data.products || []);
+      else setProducts(prev => [...prev, ...(data.products || [])]);
+      setTotal(data.total || 0);
       setPage(p);
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); setLoadingMore(false); }
@@ -89,7 +94,7 @@ export default function ProductsScreen() {
   // ─── CRUD helpers ──────────────────────────────────────────────────────────
   const openAdd = () => {
     setEditProduct(null);
-    setForm({ ...INITIAL_FORM });
+    setForm({ ...INITIAL_FORM, productImages: [], designImages: [] });
     setShowForm(true);
   };
 
@@ -111,6 +116,8 @@ export default function ProductsScreen() {
       gstPercent:     String(p.gstPercent     || '18'),
       currentStock:   String(p.currentStock   || '0'),
       minStock:       String(p.minStock       || '0'),
+      productImages:  Array.isArray(p.productImages) ? [...p.productImages] : [],
+      designImages:   Array.isArray(p.designImages)  ? [...p.designImages]  : [],
     });
     setSelected(null);
     setShowForm(true);
@@ -139,6 +146,8 @@ export default function ProductsScreen() {
         gstPercent:     form.gstPercent            || '18',
         currentStock:   form.currentStock          || '0',
         minStock:       form.minStock              || '0',
+        productImages:  form.productImages,
+        designImages:   form.designImages,
       };
 
       if (editProduct) {
@@ -214,14 +223,12 @@ export default function ProductsScreen() {
     }
   };
 
-  // ─── UI helpers ────────────────────────────────────────────────────────────
   const stockBadge = (qty: number) => {
     if (qty <= 0) return { label: 'Out of Stock', color: Colors.red,    bg: 'rgba(239,68,68,0.12)' };
     if (qty < 10) return { label: `${qty} low`,   color: Colors.yellow, bg: 'rgba(245,158,11,0.12)' };
     return            { label: `${qty} units`,     color: Colors.green,  bg: 'rgba(16,185,129,0.12)' };
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
@@ -249,19 +256,30 @@ export default function ProductsScreen() {
         renderItem={({ item }) => {
           const s = stockBadge(item.currentStock);
           const img = item.productImages?.[0] || item.designImages?.[0];
+          const imgCount = (item.productImages?.length || 0) + (item.designImages?.length || 0);
+
           return (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
               onPress={() => setSelected(item)}
               activeOpacity={0.75}
             >
-              {img ? (
-                <Image source={{ uri: img }} style={styles.thumb} />
-              ) : (
-                <View style={[styles.thumbPlaceholder, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
-                  <Feather name="package" size={22} color={colors.textMuted} />
-                </View>
-              )}
+              <View style={styles.thumbWrapper}>
+                {img ? (
+                  <Image source={{ uri: img }} style={styles.thumb} />
+                ) : (
+                  <View style={[styles.thumbPlaceholder, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+                    <Feather name="package" size={22} color={colors.textMuted} />
+                  </View>
+                )}
+                {imgCount > 0 && (
+                  <View style={styles.imgBadge}>
+                    <Feather name="camera" size={9} color="#fff" />
+                    <Text style={styles.imgBadgeTxt}>{imgCount}</Text>
+                  </View>
+                )}
+              </View>
+
               <View style={{ flex: 1 }}>
                 <Text style={[styles.cardName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
                 {item.partNumber ? (
@@ -275,6 +293,7 @@ export default function ProductsScreen() {
                   </Text>
                 ) : null}
               </View>
+
               <View>
                 <View style={[styles.badge, { backgroundColor: s.bg }]}>
                   <Text style={[styles.badgeText, { color: s.color }]}>{s.label}</Text>
@@ -303,7 +322,7 @@ export default function ProductsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => load(1, search, true)}
-            tintColor={Colors.accent}
+            tintColor={colors.accent}
           />
         }
         onEndReached={() => {
@@ -312,15 +331,15 @@ export default function ProductsScreen() {
         onEndReachedThreshold={0.3}
         ListFooterComponent={
           loadingMore
-            ? <ActivityIndicator color={Colors.accent} style={{ marginVertical: 16 }} />
+            ? <ActivityIndicator color={colors.accent} style={{ marginVertical: 16 }} />
             : null
         }
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Feather name="package" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>No products found</Text>
-              <TouchableOpacity style={styles.emptyAddBtn} onPress={openAdd}>
+              <Feather name="package" size={48} color={colors.textMuted} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No products found</Text>
+              <TouchableOpacity style={[styles.emptyAddBtn, { backgroundColor: colors.accent }]} onPress={openAdd}>
                 <Feather name="plus" size={16} color="#fff" />
                 <Text style={styles.emptyAddText}>Add Product</Text>
               </TouchableOpacity>
@@ -331,8 +350,8 @@ export default function ProductsScreen() {
       />
 
       {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+        <View style={[styles.loadingOverlay, { backgroundColor: colors.bgPrimary }]}>
+          <ActivityIndicator size="large" color={colors.accent} />
         </View>
       )}
 
@@ -340,7 +359,6 @@ export default function ProductsScreen() {
       <Modal
         visible={!!selected}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setSelected(null)}
       >
         {selected && (
@@ -358,7 +376,6 @@ export default function ProductsScreen() {
       <Modal
         visible={showForm}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setShowForm(false)}
       >
         <ProductForm
@@ -378,75 +395,72 @@ export default function ProductsScreen() {
         <View style={styles.overlay}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.quickSheet}
+            style={[styles.quickSheet, { backgroundColor: colors.bgCard }]}
           >
-            <View style={styles.sheetHandle} />
-            <View style={styles.quickHeader}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <View style={[styles.quickHeader, { borderBottomColor: colors.border }]}>
               <View>
-                <Text style={styles.quickTitle}>Quick Stock Adjust</Text>
+                <Text style={[styles.quickTitle, { color: colors.textPrimary }]}>Quick Stock Adjust</Text>
                 {stockProduct && (
-                  <Text style={styles.quickSub} numberOfLines={1}>{stockProduct.name}</Text>
+                  <Text style={[styles.quickSub, { color: colors.textMuted }]} numberOfLines={1}>{stockProduct.name}</Text>
                 )}
               </View>
               <TouchableOpacity onPress={() => setShowStockModal(false)}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.quickBody}>
-              {/* Type Toggle */}
               <View style={styles.typeRow}>
                 <TouchableOpacity
-                  style={[styles.typeBtn, adjType === 'INCREASE' && styles.typeBtnInc]}
+                  style={[styles.typeBtn, { backgroundColor: colors.bgSecondary, borderColor: colors.border }, adjType === 'INCREASE' && styles.typeBtnInc]}
                   onPress={() => setAdjType('INCREASE')}
                 >
-                  <Feather name="plus-circle" size={16} color={adjType === 'INCREASE' ? '#10b981' : Colors.textMuted} />
-                  <Text style={[styles.typeTxt, adjType === 'INCREASE' && { color: '#10b981', fontWeight: '700' }]}>
+                  <Feather name="plus-circle" size={16} color={adjType === 'INCREASE' ? '#10b981' : colors.textMuted} />
+                  <Text style={[styles.typeTxt, { color: colors.textMuted }, adjType === 'INCREASE' && { color: '#10b981', fontWeight: '700' }]}>
                     Increase
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.typeBtn, adjType === 'DECREASE' && styles.typeBtnDec]}
+                  style={[styles.typeBtn, { backgroundColor: colors.bgSecondary, borderColor: colors.border }, adjType === 'DECREASE' && styles.typeBtnDec]}
                   onPress={() => setAdjType('DECREASE')}
                 >
-                  <Feather name="minus-circle" size={16} color={adjType === 'DECREASE' ? '#ef4444' : Colors.textMuted} />
-                  <Text style={[styles.typeTxt, adjType === 'DECREASE' && { color: '#ef4444', fontWeight: '700' }]}>
+                  <Feather name="minus-circle" size={16} color={adjType === 'DECREASE' ? '#ef4444' : colors.textMuted} />
+                  <Text style={[styles.typeTxt, { color: colors.textMuted }, adjType === 'DECREASE' && { color: '#ef4444', fontWeight: '700' }]}>
                     Decrease
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Quantity */}
-              <Text style={styles.inputLabel}>Quantity *</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Quantity *</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: colors.bgSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                 value={adjQty}
                 onChangeText={setAdjQty}
                 placeholder="Enter quantity"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
               />
 
-              {/* Reason */}
-              <Text style={styles.inputLabel}>Reason</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Reason</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: colors.bgSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                 value={adjReason}
                 onChangeText={setAdjReason}
                 placeholder="Reason for adjustment"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
 
-            <View style={styles.quickFooter}>
+            <View style={[styles.quickFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { borderColor: colors.border }]}
                 onPress={() => setShowStockModal(false)}
               >
-                <Text style={styles.cancelTxt}>Cancel</Text>
+                <Text style={[styles.cancelTxt, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, adjSaving && { opacity: 0.7 }]}
+                style={[styles.saveBtn, { backgroundColor: colors.accent }, adjSaving && { opacity: 0.7 }]}
                 onPress={handleQuickStock}
                 disabled={adjSaving}
               >
@@ -463,7 +477,7 @@ export default function ProductsScreen() {
   );
 }
 
-// ─── Product Detail ─────────────────────────────────────────────────────────────
+// ─── Product Detail Component ─────────────────────────────────────────────────
 function ProductDetail({
   product: p,
   onClose,
@@ -477,7 +491,31 @@ function ProductDetail({
   onDelete: () => void;
   onStockAdjust: () => void;
 }) {
-  const imgs = [...(p.productImages ?? []), ...(p.designImages ?? [])];
+  const { colors } = useTheme();
+  const [tab, setTab] = useState<'product' | 'design'>('product');
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+
+  const productImgs: string[] = p.productImages || [];
+  const designImgs: string[] = p.designImages || [];
+  const activeImages = tab === 'product' ? productImgs : designImgs;
+  const currentImg = activeImages[activeIdx];
+
+  const handleTabSwitch = (t: 'product' | 'design') => {
+    setTab(t);
+    setActiveIdx(0);
+  };
+
+  const prevImage = () => {
+    if (activeImages.length <= 1) return;
+    setActiveIdx(i => (i - 1 + activeImages.length) % activeImages.length);
+  };
+
+  const nextImage = () => {
+    if (activeImages.length <= 1) return;
+    setActiveIdx(i => (i + 1) % activeImages.length);
+  };
+
   const rows = [
     { label: 'Part Number',    value: p.partNumber },
     { label: 'Company',        value: p.company },
@@ -486,94 +524,175 @@ function ProductDetail({
     { label: 'Location',       value: p.location },
     { label: 'Unit',           value: p.unit },
     { label: 'GST',            value: p.gstPercent ? `${p.gstPercent}%` : null },
-    { label: 'HSN Code',       value: p.hsnCode },
     { label: 'Barcode',        value: p.barcode },
     { label: 'Min Stock',      value: p.minStock != null ? String(p.minStock) : null },
     { label: 'Purchase Price', value: p.purchasePrice ? `₹${Number(p.purchasePrice).toLocaleString('en-IN')}` : null },
   ].filter(r => r.value);
 
   return (
-    <SafeAreaView style={dtStyles.root}>
+    <SafeAreaView style={[dtStyles.root, { backgroundColor: colors.bgCard }]}>
       {/* Header */}
-      <View style={dtStyles.header}>
-        <Text style={dtStyles.title} numberOfLines={2}>{p.name}</Text>
+      <View style={[dtStyles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[dtStyles.title, { color: colors.textPrimary }]} numberOfLines={2}>{p.name}</Text>
         <View style={dtStyles.headerActions}>
-          <TouchableOpacity onPress={onEdit} style={dtStyles.editBtn}>
-            <Feather name="edit-2" size={16} color={Colors.accentLight} />
+          <TouchableOpacity onPress={onEdit} style={[dtStyles.editBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+            <Feather name="edit-2" size={16} color={colors.accentLight} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={dtStyles.closeBtn}>
-            <Feather name="x" size={20} color={Colors.textSecondary} />
+          <TouchableOpacity onPress={onClose} style={[dtStyles.closeBtn, { backgroundColor: colors.bgSecondary }]}>
+            <Feather name="x" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={dtStyles.body}>
-        {/* Image */}
-        {imgs[0] ? (
-          <Image source={{ uri: imgs[0] }} style={dtStyles.img} />
-        ) : (
-          <View style={dtStyles.imgPlaceholder}>
-            <Feather name="package" size={48} color={Colors.textMuted} />
+      <ScrollView contentContainerStyle={dtStyles.body} showsVerticalScrollIndicator={false}>
+        {/* Photo Gallery Tab Switcher */}
+        <View style={[dtStyles.tabContainer, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <TouchableOpacity
+            style={[dtStyles.galleryTab, tab === 'product' && [dtStyles.galleryTabActive, { backgroundColor: colors.bgCard, borderColor: colors.border }]]}
+            onPress={() => handleTabSwitch('product')}
+          >
+            <Feather name="camera" size={14} color={tab === 'product' ? colors.accentLight : colors.textMuted} />
+            <Text style={[dtStyles.galleryTabTxt, { color: colors.textMuted }, tab === 'product' && { color: colors.accentLight, fontWeight: '700' }]}>
+              Product ({productImgs.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[dtStyles.galleryTab, tab === 'design' && [dtStyles.galleryTabActive, { backgroundColor: colors.bgCard, borderColor: colors.border }]]}
+            onPress={() => handleTabSwitch('design')}
+          >
+            <Feather name="file-text" size={14} color={tab === 'design' ? colors.purple : colors.textMuted} />
+            <Text style={[dtStyles.galleryTabTxt, { color: colors.textMuted }, tab === 'design' && { color: colors.purple, fontWeight: '700' }]}>
+              Design / Drawing ({designImgs.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Image Preview Box */}
+        {currentImg ? (
+          <View style={dtStyles.imageContainer}>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setLightboxVisible(true)} style={dtStyles.imgWrapper}>
+              <Image source={{ uri: currentImg }} style={dtStyles.img} resizeMode="contain" />
+              <View style={dtStyles.zoomBadge}>
+                <Feather name="zoom-in" size={13} color="#fff" />
+                <Text style={dtStyles.zoomBadgeTxt}>Tap to zoom</Text>
+              </View>
+            </TouchableOpacity>
+
+            {activeImages.length > 1 && (
+              <View style={dtStyles.navControls}>
+                <TouchableOpacity onPress={prevImage} style={[dtStyles.navBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                  <Feather name="chevron-left" size={20} color="#fff" />
+                </TouchableOpacity>
+                <Text style={dtStyles.pageCounter}>{activeIdx + 1} / {activeImages.length}</Text>
+                <TouchableOpacity onPress={nextImage} style={[dtStyles.navBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+                  <Feather name="chevron-right" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
+        ) : (
+          <View style={[dtStyles.imgPlaceholder, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Feather name={tab === 'product' ? 'camera' : 'file-text'} size={40} color={colors.textMuted} />
+            <Text style={[dtStyles.noImgTxt, { color: colors.textMuted }]}>
+              No {tab === 'product' ? 'product' : 'design'} photos uploaded
+            </Text>
+          </View>
+        )}
+
+        {/* Thumbnail Strip */}
+        {activeImages.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={dtStyles.thumbStrip}>
+            {activeImages.map((img, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setActiveIdx(i)}
+                style={[
+                  dtStyles.thumbBox,
+                  { borderColor: colors.border },
+                  i === activeIdx && { borderColor: tab === 'product' ? colors.accent : colors.purple, borderWidth: 2 }
+                ]}
+              >
+                <Image source={{ uri: img }} style={dtStyles.thumbImg} resizeMode="cover" />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         )}
 
         {/* Stock stats row */}
         <View style={dtStyles.statsRow}>
-          <TouchableOpacity style={dtStyles.statBox} onPress={onStockAdjust} activeOpacity={0.8}>
-            <Text style={dtStyles.statVal}>{p.currentStock ?? 0}</Text>
-            <Text style={dtStyles.statLabel}>In Stock</Text>
-            <View style={dtStyles.adjustHint}>
-              <Feather name="refresh-cw" size={10} color={Colors.accentLight} />
-              <Text style={dtStyles.adjustHintTxt}>Adjust</Text>
+          <TouchableOpacity style={[dtStyles.statBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]} onPress={onStockAdjust} activeOpacity={0.8}>
+            <Text style={[dtStyles.statVal, { color: colors.textPrimary }]}>{p.currentStock ?? 0}</Text>
+            <Text style={[dtStyles.statLabel, { color: colors.textMuted }]}>In Stock</Text>
+            <View style={[dtStyles.adjustHint, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}>
+              <Feather name="refresh-cw" size={10} color={colors.accentLight} />
+              <Text style={[dtStyles.adjustHintTxt, { color: colors.accentLight }]}>Adjust</Text>
             </View>
           </TouchableOpacity>
-          <View style={dtStyles.statBox}>
-            <Text style={[dtStyles.statVal, { color: Colors.green }]}>
+          <View style={[dtStyles.statBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Text style={[dtStyles.statVal, { color: colors.green }]}>
               {p.price ? `₹${Number(p.price).toLocaleString('en-IN')}` : '—'}
             </Text>
-            <Text style={dtStyles.statLabel}>Sale Price</Text>
+            <Text style={[dtStyles.statLabel, { color: colors.textMuted }]}>Sale Price</Text>
           </View>
-          <View style={dtStyles.statBox}>
-            <Text style={[dtStyles.statVal, { color: Colors.purple }]}>
+          <View style={[dtStyles.statBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Text style={[dtStyles.statVal, { color: colors.purple }]}>
               {p.gstPercent ? `${p.gstPercent}%` : '—'}
             </Text>
-            <Text style={dtStyles.statLabel}>GST</Text>
+            <Text style={[dtStyles.statLabel, { color: colors.textMuted }]}>GST</Text>
           </View>
         </View>
 
         {/* Field rows */}
         {rows.map(r => (
-          <View key={r.label} style={dtStyles.row}>
-            <Text style={dtStyles.rowLabel}>{r.label}</Text>
-            <Text style={dtStyles.rowValue}>{r.value}</Text>
+          <View key={r.label} style={[dtStyles.row, { borderBottomColor: colors.border }]}>
+            <Text style={[dtStyles.rowLabel, { color: colors.textSecondary }]}>{r.label}</Text>
+            <Text style={[dtStyles.rowValue, { color: colors.textPrimary }]}>{r.value}</Text>
           </View>
         ))}
 
         {p.specifications ? (
-          <View style={dtStyles.textBox}>
-            <Text style={dtStyles.textBoxTitle}>Specifications</Text>
-            <Text style={dtStyles.textBoxContent}>{p.specifications}</Text>
+          <View style={[dtStyles.textBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Text style={[dtStyles.textBoxTitle, { color: colors.textMuted }]}>Specifications</Text>
+            <Text style={[dtStyles.textBoxContent, { color: colors.textSecondary }]}>{p.specifications}</Text>
           </View>
         ) : null}
 
         {p.description ? (
-          <View style={dtStyles.textBox}>
-            <Text style={dtStyles.textBoxTitle}>Description</Text>
-            <Text style={dtStyles.textBoxContent}>{p.description}</Text>
+          <View style={[dtStyles.textBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <Text style={[dtStyles.textBoxTitle, { color: colors.textMuted }]}>Description</Text>
+            <Text style={[dtStyles.textBoxContent, { color: colors.textSecondary }]}>{p.description}</Text>
           </View>
         ) : null}
 
         {/* Delete button */}
         <TouchableOpacity style={dtStyles.deleteBtn} onPress={onDelete}>
-          <Feather name="trash-2" size={16} color={Colors.red} />
+          <Feather name="trash-2" size={16} color={colors.red} />
           <Text style={dtStyles.deleteTxt}>Delete Product</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Lightbox Zoom Modal */}
+      <Modal visible={lightboxVisible} transparent animationType="fade" onRequestClose={() => setLightboxVisible(false)}>
+        <View style={dtStyles.lightboxOverlay}>
+          <SafeAreaView style={dtStyles.lightboxHeader}>
+            <TouchableOpacity onPress={() => setLightboxVisible(false)} style={dtStyles.lightboxClose}>
+              <Feather name="x" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={dtStyles.lightboxTitle}>{tab === 'product' ? 'Product Photo' : 'Design Drawing'}</Text>
+          </SafeAreaView>
+          <View style={dtStyles.lightboxContent}>
+            {currentImg && (
+              <Image source={{ uri: currentImg }} style={dtStyles.lightboxImage} resizeMode="contain" />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-// ─── Product Form (Add / Edit) ─────────────────────────────────────────────────
+// ─── Product Form (Add / Edit with Photo Uploads) ─────────────────────────────
 function ProductForm({
   editProduct, form, setForm, categories, suppliers, saving, onSave, onClose,
 }: {
@@ -586,6 +705,7 @@ function ProductForm({
   onSave: () => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
   const [showCatPicker, setShowCatPicker]   = useState(false);
   const [showSupPicker, setShowSupPicker]   = useState(false);
   const [showUnitPicker, setShowUnitPicker] = useState(false);
@@ -602,228 +722,364 @@ function ProductForm({
     s.name.toLowerCase().includes(supSearch.toLowerCase())
   );
 
-  const f = (key: keyof typeof INITIAL_FORM) => (val: string) =>
-    setForm((prev: any) => ({ ...prev, [key]: val }));
+  const pickImages = async (type: 'product' | 'design') => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Photo library access is needed to upload photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uris = result.assets.map(a =>
+          a.base64 ? `data:${a.mimeType || 'image/jpeg'};base64,${a.base64}` : a.uri
+        );
+        if (type === 'product') {
+          setForm((prev: any) => ({ ...prev, productImages: [...(prev.productImages || []), ...uris] }));
+        } else {
+          setForm((prev: any) => ({ ...prev, designImages: [...(prev.designImages || []), ...uris] }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to pick photos.');
+    }
+  };
+
+  const removeImage = (type: 'product' | 'design', index: number) => {
+    if (type === 'product') {
+      setForm((prev: any) => ({
+        ...prev,
+        productImages: prev.productImages.filter((_: any, i: number) => i !== index),
+      }));
+    } else {
+      setForm((prev: any) => ({
+        ...prev,
+        designImages: prev.designImages.filter((_: any, i: number) => i !== index),
+      }));
+    }
+  };
 
   return (
-    <SafeAreaView style={fStyles.root}>
-      {/* Form Header */}
-      <View style={fStyles.header}>
+    <SafeAreaView style={[fStyles.root, { backgroundColor: colors.bgPrimary }]}>
+      {/* Header */}
+      <View style={[fStyles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={fStyles.closeBtn}>
-          <Feather name="x" size={22} color={Colors.textSecondary} />
+          <Feather name="x" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={fStyles.title}>{editProduct ? 'Edit Product' : 'Add Product'}</Text>
+        <Text style={[fStyles.title, { color: colors.textPrimary }]}>
+          {editProduct ? 'Edit Product' : 'New Product'}
+        </Text>
         <TouchableOpacity
-          style={[fStyles.saveBtn, saving && { opacity: 0.7 }]}
           onPress={onSave}
+          style={[fStyles.saveBtn, { backgroundColor: colors.accent }, saving && { opacity: 0.7 }]}
           disabled={saving}
         >
-          {saving
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={fStyles.saveTxt}>Save</Text>
-          }
+          {saving ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={fStyles.saveTxt}>Save</Text>
+          )}
         </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={fStyles.body} showsVerticalScrollIndicator={false}>
+          {/* Section: Photos */}
+          <Text style={[fStyles.sectionHeader, { color: colors.textMuted }]}>PHOTOS & DESIGN DRAWINGS</Text>
 
-          {/* ── Basic Info ────────────────────────────────── */}
-          <SectionHeader title="Basic Information" />
+          {/* Product Photos */}
+          <View style={[fStyles.photoSection, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={fStyles.photoHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="camera" size={16} color={colors.accentLight} />
+                <Text style={[fStyles.photoTitle, { color: colors.textPrimary }]}>Product Photos</Text>
+                <Text style={[fStyles.photoCount, { color: colors.textMuted }]}>({form.productImages?.length || 0})</Text>
+              </View>
+              <TouchableOpacity
+                style={[fStyles.addPhotoBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
+                onPress={() => pickImages('product')}
+              >
+                <Feather name="plus" size={14} color={colors.accentLight} />
+                <Text style={[fStyles.addPhotoTxt, { color: colors.accentLight }]}>Add Photo</Text>
+              </TouchableOpacity>
+            </View>
 
-          <FormField label="Product Name *">
-            <TextInput
-              style={fStyles.input}
-              value={form.name}
-              onChangeText={f('name')}
-              placeholder="Enter product name"
-              placeholderTextColor={Colors.textMuted}
-            />
-          </FormField>
-
-          <FormField label="Company / Brand">
-            <TextInput
-              style={fStyles.input}
-              value={form.company}
-              onChangeText={f('company')}
-              placeholder="Manufacturer or brand name"
-              placeholderTextColor={Colors.textMuted}
-            />
-          </FormField>
-
-          <FormField label="Category">
-            <TouchableOpacity
-              style={fStyles.picker}
-              onPress={() => setShowCatPicker(true)}
-            >
-              <Text style={[fStyles.pickerTxt, !selectedCat && { color: Colors.textMuted }]}>
-                {selectedCat ? selectedCat.name : 'Select category'}
-              </Text>
-              <Feather name="chevron-down" size={16} color={Colors.textMuted} />
-            </TouchableOpacity>
-          </FormField>
-
-          <FormField label="Supplier">
-            <TouchableOpacity
-              style={fStyles.picker}
-              onPress={() => setShowSupPicker(true)}
-            >
-              <Text style={[fStyles.pickerTxt, !selectedSup && { color: Colors.textMuted }]}>
-                {selectedSup ? selectedSup.name : 'Select supplier'}
-              </Text>
-              <Feather name="chevron-down" size={16} color={Colors.textMuted} />
-            </TouchableOpacity>
-          </FormField>
-
-          <FormField label="Location / Shelf No.">
-            <TextInput
-              style={fStyles.input}
-              value={form.location}
-              onChangeText={f('location')}
-              placeholder="e.g. A-12, Shelf 3"
-              placeholderTextColor={Colors.textMuted}
-            />
-          </FormField>
-
-          {/* ── Identification ────────────────────────────── */}
-          <SectionHeader title="Identification" />
-
-          <FormField label="Part Number">
-            <TextInput
-              style={fStyles.input}
-              value={form.partNumber}
-              onChangeText={f('partNumber')}
-              placeholder="Manufacturer part number"
-              placeholderTextColor={Colors.textMuted}
-              autoCapitalize="characters"
-            />
-          </FormField>
-
-          <FormField label="Barcode">
-            <TextInput
-              style={fStyles.input}
-              value={form.barcode}
-              onChangeText={f('barcode')}
-              placeholder="Barcode / QR value"
-              placeholderTextColor={Colors.textMuted}
-            />
-          </FormField>
-
-          <FormField label="Unit">
-            <TouchableOpacity
-              style={fStyles.picker}
-              onPress={() => setShowUnitPicker(true)}
-            >
-              <Text style={fStyles.pickerTxt}>{form.unit}</Text>
-              <Feather name="chevron-down" size={16} color={Colors.textMuted} />
-            </TouchableOpacity>
-          </FormField>
-
-          {/* ── Pricing & Stock ───────────────────────────── */}
-          <SectionHeader title="Pricing & Stock" />
-
-          <View style={fStyles.row2}>
-            <FormField label="Selling Price (₹)" flex>
-              <TextInput
-                style={fStyles.input}
-                value={form.price}
-                onChangeText={f('price')}
-                placeholder="0.00"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="decimal-pad"
-              />
-            </FormField>
-            <FormField label="Purchase Price (₹)" flex>
-              <TextInput
-                style={fStyles.input}
-                value={form.purchasePrice}
-                onChangeText={f('purchasePrice')}
-                placeholder="0.00"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="decimal-pad"
-              />
-            </FormField>
+            {form.productImages?.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={fStyles.photoThumbList}>
+                {form.productImages.map((uri, idx) => (
+                  <View key={idx} style={[fStyles.formThumbWrapper, { borderColor: colors.border }]}>
+                    <Image source={{ uri }} style={fStyles.formThumb} />
+                    <TouchableOpacity
+                      style={fStyles.removeThumbBtn}
+                      onPress={() => removeImage('product', idx)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Feather name="x" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={[fStyles.emptyPhotoHint, { color: colors.textMuted }]}>No product photos added yet</Text>
+            )}
           </View>
 
-          <FormField label="GST %">
+          {/* Design Photos */}
+          <View style={[fStyles.photoSection, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={fStyles.photoHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Feather name="file-text" size={16} color={colors.purple} />
+                <Text style={[fStyles.photoTitle, { color: colors.textPrimary }]}>Design / Drawing Photos</Text>
+                <Text style={[fStyles.photoCount, { color: colors.textMuted }]}>({form.designImages?.length || 0})</Text>
+              </View>
+              <TouchableOpacity
+                style={[fStyles.addPhotoBtn, { backgroundColor: 'rgba(139,92,246,0.12)', borderColor: colors.purple }]}
+                onPress={() => pickImages('design')}
+              >
+                <Feather name="plus" size={14} color={colors.purple} />
+                <Text style={[fStyles.addPhotoTxt, { color: colors.purple }]}>Add Design</Text>
+              </TouchableOpacity>
+            </View>
+
+            {form.designImages?.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={fStyles.photoThumbList}>
+                {form.designImages.map((uri, idx) => (
+                  <View key={idx} style={[fStyles.formThumbWrapper, { borderColor: colors.border }]}>
+                    <Image source={{ uri }} style={fStyles.formThumb} />
+                    <TouchableOpacity
+                      style={fStyles.removeThumbBtn}
+                      onPress={() => removeImage('design', idx)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Feather name="x" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={[fStyles.emptyPhotoHint, { color: colors.textMuted }]}>No technical drawings / design photos added</Text>
+            )}
+          </View>
+
+          {/* Section: Basic info */}
+          <Text style={[fStyles.sectionHeader, { color: colors.textMuted }]}>BASIC INFORMATION</Text>
+
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Product Name *</Text>
+            <TextInput
+              style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+              value={form.name}
+              onChangeText={v => setForm((f: any) => ({ ...f, name: v }))}
+              placeholder="e.g. Hex Nut 10mm"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={fStyles.row2}>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Part Number</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.partNumber}
+                onChangeText={v => setForm((f: any) => ({ ...f, partNumber: v }))}
+                placeholder="e.g. PN-1029"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Brand / Company</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.company}
+                onChangeText={v => setForm((f: any) => ({ ...f, company: v }))}
+                placeholder="e.g. Ashirwad"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+          </View>
+
+          {/* Category Picker */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Category</Text>
+            <TouchableOpacity
+              style={[fStyles.picker, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+              onPress={() => { setCatSearch(''); setShowCatPicker(true); }}
+            >
+              <Text style={[fStyles.pickerTxt, { color: selectedCat ? colors.textPrimary : colors.textMuted }]}>
+                {selectedCat ? selectedCat.name : 'Select Category'}
+              </Text>
+              <Feather name="chevron-down" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Supplier Picker */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Supplier</Text>
+            <TouchableOpacity
+              style={[fStyles.picker, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+              onPress={() => { setSupSearch(''); setShowSupPicker(true); }}
+            >
+              <Text style={[fStyles.pickerTxt, { color: selectedSup ? selectedSup.name : colors.textMuted }]}>
+                {selectedSup ? selectedSup.name : 'Select Supplier'}
+              </Text>
+              <Feather name="chevron-down" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Location & Unit */}
+          <View style={fStyles.row2}>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Shelf / Location</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.location}
+                onChangeText={v => setForm((f: any) => ({ ...f, location: v }))}
+                placeholder="e.g. Rack A-3"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Unit</Text>
+              <TouchableOpacity
+                style={[fStyles.picker, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                onPress={() => setShowUnitPicker(true)}
+              >
+                <Text style={[fStyles.pickerTxt, { color: colors.textPrimary }]}>{form.unit}</Text>
+                <Feather name="chevron-down" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Pricing & Tax */}
+          <Text style={[fStyles.sectionHeader, { color: colors.textMuted }]}>PRICING & TAX</Text>
+
+          <View style={fStyles.row2}>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Sale Price (₹)</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.price}
+                onChangeText={v => setForm((f: any) => ({ ...f, price: v }))}
+                placeholder="0.00"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Purchase Price (₹)</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.purchasePrice}
+                onChangeText={v => setForm((f: any) => ({ ...f, purchasePrice: v }))}
+                placeholder="0.00"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="decimal-pad"
+              />
+            </View>
+          </View>
+
+          {/* GST */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>GST Rate (%)</Text>
             <View style={fStyles.gstRow}>
               {GST_OPTIONS.map(g => (
                 <TouchableOpacity
                   key={g}
-                  style={[fStyles.gstChip, form.gstPercent === g && fStyles.gstChipActive]}
-                  onPress={() => setForm((prev: any) => ({ ...prev, gstPercent: g }))}
+                  style={[
+                    fStyles.gstChip,
+                    { backgroundColor: colors.bgCard, borderColor: colors.border },
+                    form.gstPercent === g && [fStyles.gstChipActive, { borderColor: colors.accent, backgroundColor: colors.accentGlow }]
+                  ]}
+                  onPress={() => setForm((f: any) => ({ ...f, gstPercent: g }))}
                 >
-                  <Text style={[fStyles.gstChipTxt, form.gstPercent === g && fStyles.gstChipTxtActive]}>
+                  <Text style={[fStyles.gstChipTxt, { color: colors.textSecondary }, form.gstPercent === g && { color: colors.accentLight, fontWeight: '700' }]}>
                     {g}%
                   </Text>
                 </TouchableOpacity>
               ))}
-              {/* Custom GST input */}
-              <TextInput
-                style={[fStyles.gstCustomInput, !GST_OPTIONS.includes(form.gstPercent) && fStyles.gstCustomActive]}
-                value={GST_OPTIONS.includes(form.gstPercent) ? '' : form.gstPercent}
-                onChangeText={v => setForm((prev: any) => ({ ...prev, gstPercent: v }))}
-                placeholder="Custom"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="decimal-pad"
-              />
             </View>
-          </FormField>
-
-          <View style={fStyles.row2}>
-            <FormField label="Current Stock" flex>
-              <TextInput
-                style={fStyles.input}
-                value={form.currentStock}
-                onChangeText={f('currentStock')}
-                placeholder="0"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="number-pad"
-              />
-            </FormField>
-            <FormField label="Min Stock (alert)" flex>
-              <TextInput
-                style={fStyles.input}
-                value={form.minStock}
-                onChangeText={f('minStock')}
-                placeholder="0"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="number-pad"
-              />
-            </FormField>
           </View>
 
-          {/* ── Details ───────────────────────────────────── */}
-          <SectionHeader title="Details" />
+          {/* Stock */}
+          <Text style={[fStyles.sectionHeader, { color: colors.textMuted }]}>INVENTORY</Text>
 
-          <FormField label="Specifications">
+          <View style={fStyles.row2}>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>
+                {editProduct ? 'Current Stock' : 'Opening Stock'}
+              </Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.currentStock}
+                onChangeText={v => setForm((f: any) => ({ ...f, currentStock: v }))}
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={[fStyles.fieldGroup, { flex: 1 }]}>
+              <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Min Stock Alert</Text>
+              <TextInput
+                style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+                value={form.minStock}
+                onChangeText={v => setForm((f: any) => ({ ...f, minStock: v }))}
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+              />
+            </View>
+          </View>
+
+          {/* Barcode */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Barcode</Text>
             <TextInput
-              style={[fStyles.input, fStyles.textarea]}
+              style={[fStyles.input, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
+              value={form.barcode}
+              onChangeText={v => setForm((f: any) => ({ ...f, barcode: v }))}
+              placeholder="Barcode / UPC / EAN"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          {/* Specifications */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Specifications</Text>
+            <TextInput
+              style={[fStyles.input, fStyles.textarea, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
               value={form.specifications}
-              onChangeText={f('specifications')}
-              placeholder="Technical specs, dimensions, material..."
-              placeholderTextColor={Colors.textMuted}
+              onChangeText={v => setForm((f: any) => ({ ...f, specifications: v }))}
+              placeholder="Technical specs, material, dimensions..."
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
             />
-          </FormField>
+          </View>
 
-          <FormField label="Description">
+          {/* Description */}
+          <View style={fStyles.fieldGroup}>
+            <Text style={[fStyles.fieldLabel, { color: colors.textSecondary }]}>Description</Text>
             <TextInput
-              style={[fStyles.input, fStyles.textarea]}
+              style={[fStyles.input, fStyles.textarea, { backgroundColor: colors.bgCard, borderColor: colors.border, color: colors.textPrimary }]}
               value={form.description}
-              onChangeText={f('description')}
-              placeholder="Product description..."
-              placeholderTextColor={Colors.textMuted}
+              onChangeText={v => setForm((f: any) => ({ ...f, description: v }))}
+              placeholder="Product notes, remarks..."
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
             />
-          </FormField>
+          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -832,40 +1088,40 @@ function ProductForm({
       {/* Category Picker Modal */}
       <Modal visible={showCatPicker} transparent animationType="fade">
         <View style={fStyles.pickerModal}>
-          <View style={fStyles.pickerSheet}>
-            <View style={fStyles.pickerModalHeader}>
-              <Text style={fStyles.pickerModalTitle}>Select Category</Text>
+          <View style={[fStyles.pickerSheet, { backgroundColor: colors.bgCard }]}>
+            <View style={[fStyles.pickerModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[fStyles.pickerModalTitle, { color: colors.textPrimary }]}>Select Category</Text>
               <TouchableOpacity onPress={() => setShowCatPicker(false)}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <View style={fStyles.searchRow}>
-              <Feather name="search" size={14} color={Colors.textMuted} />
+            <View style={[fStyles.searchRow, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+              <Feather name="search" size={14} color={colors.textMuted} />
               <TextInput
-                style={fStyles.searchInput}
+                style={[fStyles.searchInput, { color: colors.textPrimary }]}
                 value={catSearch}
                 onChangeText={setCatSearch}
-                placeholder="Search..."
-                placeholderTextColor={Colors.textMuted}
+                placeholder="Search categories..."
+                placeholderTextColor={colors.textMuted}
               />
             </View>
-            <TouchableOpacity
-              style={fStyles.pickerItem}
-              onPress={() => { setForm((p: any) => ({ ...p, categoryId: '' })); setShowCatPicker(false); }}
-            >
-              <Text style={fStyles.pickerItemTxt}>— None —</Text>
-            </TouchableOpacity>
-            <ScrollView>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <TouchableOpacity
+                style={[fStyles.pickerItem, { borderBottomColor: colors.border }, !form.categoryId && [fStyles.pickerItemActive, { backgroundColor: colors.accentGlow }]]}
+                onPress={() => { setForm((f: any) => ({ ...f, categoryId: '' })); setShowCatPicker(false); }}
+              >
+                <Text style={[fStyles.pickerItemTxt, { color: colors.textPrimary }]}>None</Text>
+              </TouchableOpacity>
               {filteredCats.map(c => (
                 <TouchableOpacity
                   key={c.id}
-                  style={[fStyles.pickerItem, form.categoryId === c.id && fStyles.pickerItemActive]}
-                  onPress={() => { setForm((p: any) => ({ ...p, categoryId: c.id })); setShowCatPicker(false); }}
+                  style={[fStyles.pickerItem, { borderBottomColor: colors.border }, form.categoryId === c.id && [fStyles.pickerItemActive, { backgroundColor: colors.accentGlow }]]}
+                  onPress={() => { setForm((f: any) => ({ ...f, categoryId: c.id })); setShowCatPicker(false); }}
                 >
-                  <Text style={[fStyles.pickerItemTxt, form.categoryId === c.id && fStyles.pickerItemTxtActive]}>
+                  <Text style={[fStyles.pickerItemTxt, { color: colors.textPrimary }, form.categoryId === c.id && { color: colors.accentLight, fontWeight: '700' }]}>
                     {c.name}
                   </Text>
-                  {form.categoryId === c.id && <Feather name="check" size={14} color={Colors.accentLight} />}
+                  {form.categoryId === c.id && <Feather name="check" size={16} color={colors.accentLight} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -876,40 +1132,40 @@ function ProductForm({
       {/* Supplier Picker Modal */}
       <Modal visible={showSupPicker} transparent animationType="fade">
         <View style={fStyles.pickerModal}>
-          <View style={fStyles.pickerSheet}>
-            <View style={fStyles.pickerModalHeader}>
-              <Text style={fStyles.pickerModalTitle}>Select Supplier</Text>
+          <View style={[fStyles.pickerSheet, { backgroundColor: colors.bgCard }]}>
+            <View style={[fStyles.pickerModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[fStyles.pickerModalTitle, { color: colors.textPrimary }]}>Select Supplier</Text>
               <TouchableOpacity onPress={() => setShowSupPicker(false)}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <View style={fStyles.searchRow}>
-              <Feather name="search" size={14} color={Colors.textMuted} />
+            <View style={[fStyles.searchRow, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+              <Feather name="search" size={14} color={colors.textMuted} />
               <TextInput
-                style={fStyles.searchInput}
+                style={[fStyles.searchInput, { color: colors.textPrimary }]}
                 value={supSearch}
-                onChangeText={setSupSearch}
-                placeholder="Search..."
-                placeholderTextColor={Colors.textMuted}
+                onChangeText={setCatSearch}
+                placeholder="Search suppliers..."
+                placeholderTextColor={colors.textMuted}
               />
             </View>
-            <TouchableOpacity
-              style={fStyles.pickerItem}
-              onPress={() => { setForm((p: any) => ({ ...p, supplierId: '' })); setShowSupPicker(false); }}
-            >
-              <Text style={fStyles.pickerItemTxt}>— None —</Text>
-            </TouchableOpacity>
-            <ScrollView>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <TouchableOpacity
+                style={[fStyles.pickerItem, { borderBottomColor: colors.border }, !form.supplierId && [fStyles.pickerItemActive, { backgroundColor: colors.accentGlow }]]}
+                onPress={() => { setForm((f: any) => ({ ...f, supplierId: '' })); setShowSupPicker(false); }}
+              >
+                <Text style={[fStyles.pickerItemTxt, { color: colors.textPrimary }]}>None</Text>
+              </TouchableOpacity>
               {filteredSups.map(s => (
                 <TouchableOpacity
                   key={s.id}
-                  style={[fStyles.pickerItem, form.supplierId === s.id && fStyles.pickerItemActive]}
-                  onPress={() => { setForm((p: any) => ({ ...p, supplierId: s.id })); setShowSupPicker(false); }}
+                  style={[fStyles.pickerItem, { borderBottomColor: colors.border }, form.supplierId === s.id && [fStyles.pickerItemActive, { backgroundColor: colors.accentGlow }]]}
+                  onPress={() => { setForm((f: any) => ({ ...f, supplierId: s.id })); setShowSupPicker(false); }}
                 >
-                  <Text style={[fStyles.pickerItemTxt, form.supplierId === s.id && fStyles.pickerItemTxtActive]}>
+                  <Text style={[fStyles.pickerItemTxt, { color: colors.textPrimary }, form.supplierId === s.id && { color: colors.accentLight, fontWeight: '700' }]}>
                     {s.name}
                   </Text>
-                  {form.supplierId === s.id && <Feather name="check" size={14} color={Colors.accentLight} />}
+                  {form.supplierId === s.id && <Feather name="check" size={16} color={colors.accentLight} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -920,22 +1176,24 @@ function ProductForm({
       {/* Unit Picker Modal */}
       <Modal visible={showUnitPicker} transparent animationType="fade">
         <View style={fStyles.pickerModal}>
-          <View style={fStyles.pickerSheet}>
-            <View style={fStyles.pickerModalHeader}>
-              <Text style={fStyles.pickerModalTitle}>Select Unit</Text>
+          <View style={[fStyles.pickerSheet, { backgroundColor: colors.bgCard }]}>
+            <View style={[fStyles.pickerModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[fStyles.pickerModalTitle, { color: colors.textPrimary }]}>Select Unit</Text>
               <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Feather name="x" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <ScrollView>
+            <ScrollView style={{ maxHeight: 300 }}>
               {UNIT_OPTIONS.map(u => (
                 <TouchableOpacity
                   key={u}
-                  style={[fStyles.pickerItem, form.unit === u && fStyles.pickerItemActive]}
-                  onPress={() => { setForm((p: any) => ({ ...p, unit: u })); setShowUnitPicker(false); }}
+                  style={[fStyles.pickerItem, { borderBottomColor: colors.border }, form.unit === u && [fStyles.pickerItemActive, { backgroundColor: colors.accentGlow }]]}
+                  onPress={() => { setForm((f: any) => ({ ...f, unit: u })); setShowUnitPicker(false); }}
                 >
-                  <Text style={[fStyles.pickerItemTxt, form.unit === u && fStyles.pickerItemTxtActive]}>{u}</Text>
-                  {form.unit === u && <Feather name="check" size={14} color={Colors.accentLight} />}
+                  <Text style={[fStyles.pickerItemTxt, { color: colors.textPrimary }, form.unit === u && { color: colors.accentLight, fontWeight: '700' }]}>
+                    {u}
+                  </Text>
+                  {form.unit === u && <Feather name="check" size={16} color={colors.accentLight} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -946,52 +1204,31 @@ function ProductForm({
   );
 }
 
-// ─── Small helpers ──────────────────────────────────────────────────────────────
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text style={fStyles.sectionHeader}>{title.toUpperCase()}</Text>
-  );
-}
-
-function FormField({ label, children, flex }: { label: string; children: React.ReactNode; flex?: boolean }) {
-  return (
-    <View style={[fStyles.fieldGroup, flex && { flex: 1 }]}>
-      <Text style={fStyles.fieldLabel}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-// ─── Styles ─────────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bgPrimary },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
   },
-  title: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
+  title: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
   count: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   addBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 42, height: 42, borderRadius: 21,
     backgroundColor: Colors.accent,
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 8, elevation: 4,
   },
   list: { padding: Spacing.lg, paddingBottom: 40 },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     backgroundColor: Colors.bgCard,
     borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    padding: Spacing.md, marginBottom: 10,
     borderWidth: 1, borderColor: Colors.border,
   },
+  thumbWrapper: { position: 'relative' },
   thumb: { width: 52, height: 52, borderRadius: Radius.md, backgroundColor: Colors.bgSecondary },
   thumbPlaceholder: {
     width: 52, height: 52, borderRadius: Radius.md,
@@ -999,6 +1236,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
   },
+  imgBadge: {
+    position: 'absolute', bottom: -2, right: -2,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 8, paddingHorizontal: 4, paddingVertical: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+  },
+  imgBadgeTxt: { color: '#fff', fontSize: 9, fontWeight: '700' },
   cardName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
   cardSub:  { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   cardPrice: { fontSize: 13, fontWeight: '700', color: Colors.green, marginTop: 3 },
@@ -1024,7 +1268,7 @@ const styles = StyleSheet.create({
   },
   emptyAddText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: Colors.bgPrimary,
   },
@@ -1105,15 +1349,109 @@ const dtStyles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: Spacing.xl, paddingBottom: 40 },
-  img: { width: '100%', height: 220, borderRadius: Radius.lg, marginBottom: Spacing.lg, backgroundColor: Colors.bgSecondary },
+
+  // Gallery tabs
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.bgSecondary,
+    borderRadius: Radius.lg,
+    padding: 4,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  galleryTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+  },
+  galleryTabActive: {
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  galleryTabTxt: { fontSize: 12, fontWeight: '600', color: Colors.textMuted },
+
+  // Image display
+  imageContainer: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    backgroundColor: Colors.bgSecondary,
+  },
+  imgWrapper: {
+    width: '100%',
+    height: 230,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  img: { width: '100%', height: '100%' },
+  zoomBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: Radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  zoomBadgeTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  navControls: {
+    position: 'absolute',
+    top: 0, bottom: 0, left: 0, right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    pointerEvents: 'box-none',
+  },
+  navBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pageCounter: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    fontSize: 11, fontWeight: '700',
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 10,
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+  },
   imgPlaceholder: {
     width: '100%', height: 160,
     borderRadius: Radius.lg,
     backgroundColor: Colors.bgSecondary,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     borderWidth: 1, borderColor: Colors.border,
+    gap: 6,
   },
+  noImgTxt: { fontSize: 12, color: Colors.textMuted },
+  thumbStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: Spacing.lg,
+    paddingVertical: 2,
+  },
+  thumbBox: {
+    width: 54, height: 54,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  thumbImg: { width: '100%', height: '100%' },
+
+  // Stats & rows
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing.lg },
   statBox: {
     flex: 1,
@@ -1161,6 +1499,32 @@ const dtStyles = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.06)',
   },
   deleteTxt: { fontSize: 14, fontWeight: '700', color: Colors.red },
+
+  // Lightbox
+  lightboxOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+  },
+  lightboxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: 12,
+  },
+  lightboxClose: { padding: 4 },
+  lightboxTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  lightboxContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  lightboxImage: {
+    width: '100%',
+    height: '85%',
+  },
 });
 
 const fStyles = StyleSheet.create({
@@ -1190,6 +1554,58 @@ const fStyles = StyleSheet.create({
     color: Colors.textMuted, letterSpacing: 0.8,
     marginTop: Spacing.lg, marginBottom: 4,
   },
+
+  // Photo Section
+  photoSection: {
+    backgroundColor: Colors.bgCard,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
+  },
+  photoHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  photoTitle: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
+  photoCount: { fontSize: 12, color: Colors.textMuted },
+  addPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  addPhotoTxt: { fontSize: 12, fontWeight: '700' },
+  photoThumbList: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  formThumbWrapper: {
+    width: 68, height: 68,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  formThumb: { width: '100%', height: '100%' },
+  removeThumbBtn: {
+    position: 'absolute',
+    top: 3, right: 3,
+    backgroundColor: 'rgba(239,68,68,0.85)',
+    width: 18, height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyPhotoHint: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic' },
+
   fieldGroup: { gap: 5 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   input: {
@@ -1218,14 +1634,6 @@ const fStyles = StyleSheet.create({
   gstChipActive: { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
   gstChipTxt: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   gstChipTxtActive: { color: Colors.accentLight, fontWeight: '700' },
-  gstCustomInput: {
-    width: 72, paddingHorizontal: 10, paddingVertical: 8,
-    borderRadius: Radius.full,
-    borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.bgCard,
-    color: Colors.textPrimary, fontSize: 13, textAlign: 'center',
-  },
-  gstCustomActive: { borderColor: Colors.accent, backgroundColor: Colors.accentGlow },
 
   // Picker Modal
   pickerModal: {

@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
 
   // Employees
   employeeCard: {
-    flexDirection: 'row', alignItems: 'center', justify: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: Colors.bgCard, borderRadius: Radius.lg,
     padding: Spacing.md, borderWidth: 1, borderColor: Colors.border,
   },
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
 
   // Devices
   deviceCard: {
-    flexDirection: 'row', alignItems: 'center', justify: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: Colors.bgCard, borderRadius: Radius.lg,
     padding: Spacing.md, borderWidth: 1, borderColor: Colors.border,
   },

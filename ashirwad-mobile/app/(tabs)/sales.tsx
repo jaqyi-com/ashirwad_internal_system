@@ -100,7 +100,6 @@ export default function SalesScreen() {
       <Modal
         visible={!!selected}
         animationType="slide"
-        presentationStyle="pageSheet"
         onRequestClose={() => setSelected(null)}
       >
         {selected && <SaleDetail sale={selected} onClose={() => setSelected(null)} />}
@@ -202,8 +201,8 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { fontSize: 15, color: Colors.textSecondary },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject, alignItems: 'center',
-    justifyContent: 'center', backgroundColor: Colors.bgPrimary,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgPrimary,
   },
 });
 

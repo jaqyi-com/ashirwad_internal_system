@@ -92,6 +92,7 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
     categoryId, company, supplierId, location,
     price, purchasePrice, gstPercent,
     currentStock, unit, coatingTypeId, barcode,
+    productImages, designImages,
   } = req.body;
 
   if (!name?.trim()) return res.status(400).json({ error: 'Product name is required.' });
@@ -112,8 +113,8 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
       minStock:      0,
       currentStock:  parseInt(currentStock)   || 0,
       unit:          unit || 'pcs',
-      productImages: [],
-      designImages:  [],
+      productImages: Array.isArray(productImages) ? productImages : [],
+      designImages:  Array.isArray(designImages)  ? designImages  : [],
       coatingTypeId: coatingTypeId || null,
       barcode:       barcode       || null,
     },
@@ -170,6 +171,7 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
     price, purchasePrice, gstPercent,
     currentStock,
     unit, coatingTypeId, barcode,
+    productImages, designImages,
   } = req.body;
 
   const product = await prisma.product.update({
@@ -189,6 +191,8 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
       unit:          unit          || existing.unit,
       coatingTypeId: coatingTypeId !== undefined ? coatingTypeId || null : existing.coatingTypeId,
       barcode:       barcode       !== undefined ? barcode       : existing.barcode,
+      ...(productImages !== undefined && { productImages: Array.isArray(productImages) ? productImages : [] }),
+      ...(designImages  !== undefined && { designImages:  Array.isArray(designImages)  ? designImages  : [] }),
       ...(currentStock !== undefined && { currentStock: parseInt(currentStock) }),
     },
     include: { category: true, supplier: true, coatingType: true },

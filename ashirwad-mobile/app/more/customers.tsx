@@ -23,6 +23,7 @@ interface Customer {
 }
 
 export default function CustomersScreen() {
+  const { colors } = useTheme();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

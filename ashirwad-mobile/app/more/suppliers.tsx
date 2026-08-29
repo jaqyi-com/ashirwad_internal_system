@@ -24,6 +24,7 @@ interface Supplier {
 }
 
 export default function SuppliersScreen() {
+  const { colors } = useTheme();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

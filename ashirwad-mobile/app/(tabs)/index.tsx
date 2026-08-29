@@ -110,7 +110,7 @@ export default function DashboardScreen() {
                 key={p.id}
                 title={p.name}
                 subtitle={p.category?.name ?? 'Uncategorized'}
-                rightLabel={`${fmt(p.currentStock)} ${p.unit}`}
+                rightLabel={`${fmt(p.currentStock)} ${p.unit || 'pcs'}`}
                 imageUri={p.productImages?.[0]}
                 showChevron={false}
               />
@@ -164,9 +164,35 @@ const styles = {
     paddingVertical: Spacing.xl,
     paddingBottom: 28,
   },
+  greeting: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500' as const,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: '800' as const,
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  avatarBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
   statGrid: {
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
-    gap: 10,
+    justifyContent: 'space-between' as const,
+    rowGap: 12,
   },
 };
+

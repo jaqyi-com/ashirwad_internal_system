@@ -24,6 +24,7 @@ interface Category {
 }
 
 export default function CategoriesScreen() {
+  const { colors } = useTheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);

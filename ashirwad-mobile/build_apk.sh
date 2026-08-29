@@ -15,16 +15,18 @@ df -h /Users/akshatverma
 echo "=== Setting up Gradle on /Volumes/akshat ==="
 mkdir -p /Volumes/akshat/.gradle
 
-echo "=== Applying NDK fix ==="
-sed -i '' 's/    ndkVersion rootProject.ext.ndkVersion/    \/\/ ndkVersion rootProject.ext.ndkVersion/' \
-  /Volumes/akshat/Ashirwad_Internal_System/ashirwad-mobile/android/app/build.gradle
-
 echo "=== Building APK ==="
 export ANDROID_HOME=$HOME/Library/Android/sdk
 export GRADLE_USER_HOME=/Volumes/akshat/.gradle
-export JAVA_HOME=$(/usr/libexec/java_home)
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH=$JAVA_HOME/bin:$PATH
 
 cd /Volumes/akshat/Ashirwad_Internal_System/ashirwad-mobile/android
-./gradlew assembleDebug
+./gradlew assembleRelease
 
-find /Volumes/akshat/Ashirwad_Internal_System/ashirwad-mobile/android/app/build/outputs/apk -name "*.apk" 2>/dev/null | xargs ls -lh 2>/dev/null || echo "APK not found"
+APK_PATH="/Volumes/akshat/Ashirwad_Internal_System/ashirwad-mobile/android/app/build/outputs/apk/release/app-release.apk"
+if [ -f "$APK_PATH" ]; then
+  cp "$APK_PATH" /Volumes/akshat/Ashirwad_Internal_System/client/public/ashirwad-ims.apk
+  echo "✅ Copied APK to client/public/ashirwad-ims.apk"
+  ls -lh /Volumes/akshat/Ashirwad_Internal_System/client/public/ashirwad-ims.apk
+fi
