@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import api from '../../services/api';
 import { useTheme } from '../../store/themeStore';
 import SearchBar from '../../components/SearchBar';
@@ -733,14 +734,19 @@ function ProductForm({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
-        quality: 0.6,
-        base64: true,
+        quality: 1, // Will compress during manipulation
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const uris = result.assets.map(a =>
-          a.base64 ? `data:${a.mimeType || 'image/jpeg'};base64,${a.base64}` : a.uri
-        );
+        const uris = await Promise.all(result.assets.map(async (a) => {
+          const manipResult = await ImageManipulator.manipulateAsync(
+            a.uri,
+            [{ resize: { width: 1080 } }],
+            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+          );
+          return `data:image/jpeg;base64,${manipResult.base64}`;
+        }));
+        
         if (type === 'product') {
           setForm((prev: any) => ({ ...prev, productImages: [...(prev.productImages || []), ...uris] }));
         } else {
