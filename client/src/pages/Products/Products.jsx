@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProductDetailModal from './ProductDetailModal';
+import imageCompression from 'browser-image-compression';
 
 const INITIAL_FORM = {
   name: '', partNumber: '', description: '', specifications: '',
@@ -110,12 +111,30 @@ export default function Products() {
   };
 
   // ─── Image management ────────────────────────
-  const addFiles = (e, type) => {
+  const addFiles = async (e, type) => {
     const files = Array.from(e.target.files);
-    const items = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
-    if (type === 'product') setNewProductFiles(prev => [...prev, ...items]);
-    else setNewDesignFiles(prev => [...prev, ...items]);
-    e.target.value = '';
+    e.target.value = ''; // Reset input early
+
+    toast.loading('Compressing images...', { id: 'compress' });
+    try {
+      const compressedItems = await Promise.all(files.map(async (f) => {
+        const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: true };
+        const compressedFile = await imageCompression(f, options);
+        return { file: compressedFile, preview: URL.createObjectURL(compressedFile) };
+      }));
+      
+      if (type === 'product') setNewProductFiles(prev => [...prev, ...compressedItems]);
+      else setNewDesignFiles(prev => [...prev, ...compressedItems]);
+      
+      toast.success('Images optimized', { id: 'compress' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to compress some images', { id: 'compress' });
+      // Fallback
+      const items = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+      if (type === 'product') setNewProductFiles(prev => [...prev, ...items]);
+      else setNewDesignFiles(prev => [...prev, ...items]);
+    }
   };
 
   const removeExistingImg = (idx, type) => {
