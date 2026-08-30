@@ -6,8 +6,8 @@ const { authenticate } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 router.get('/', authenticate, asyncHandler(async (req, res) => {
-  const { status, customerId, page = 1, limit = 20 } = req.query;
-  const where = {};
+  const { status, customerId, type = 'SALE', page = 1, limit = 20 } = req.query;
+  const where = { type };
   if (status) where.status = status;
   if (customerId) where.customerId = customerId;
 
@@ -35,7 +35,7 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.post('/', authenticate, asyncHandler(async (req, res) => {
-  const { customerId, items, notes, discount = 0 } = req.body;
+  const { customerId, items, notes, discount = 0, type = 'SALE' } = req.body;
   if (!items?.length) return res.status(400).json({ error: 'Sale items required.' });
 
   // Validate stock
@@ -47,8 +47,9 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
     }
   }
 
-  const count = await prisma.sale.count();
-  const saleNumber = `SALE-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  const count = await prisma.sale.count({ where: { type } });
+  const prefix = type === 'CHALLAN' ? 'CH' : 'SALE';
+  const saleNumber = `${prefix}-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
   let subtotal = 0;
   let gstAmount = 0;
@@ -75,6 +76,7 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
     data: {
       saleNumber,
       customerId: customerId || null,
+      type,
       notes,
       discount: parseFloat(discount),
       subtotal,

@@ -285,8 +285,13 @@ model Customer {
 }
 
 // ─────────────────────────────────────────────
-// SALES
+// SALES & CHALLANS
 // ─────────────────────────────────────────────
+
+enum DocumentType {
+  SALE
+  CHALLAN
+}
 
 enum SaleStatus {
   DRAFT
@@ -301,6 +306,7 @@ model Sale {
   saleNumber   String     @unique
   customerId   String?
   customer     Customer?  @relation(fields: [customerId], references: [id])
+  type         DocumentType @default(SALE)
   status       SaleStatus @default(DRAFT)
   saleDate     DateTime   @default(now())
   subtotal     Decimal    @default(0) @db.Decimal(12, 2)

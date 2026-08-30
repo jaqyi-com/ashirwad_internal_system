@@ -15,6 +15,7 @@ import Suppliers from './pages/Suppliers/Suppliers';
 import Customers from './pages/Customers/Customers';
 import Purchases from './pages/Purchases/Purchases';
 import Sales from './pages/Sales/Sales';
+import Challans from './pages/Challans/Challans';
 import Inventory from './pages/Inventory/Inventory';
 import LowStock from './pages/Inventory/LowStock';
 import Adjustments from './pages/Inventory/Adjustments';
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="purchases" element={<Purchases />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="challans" element={<Challans />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="low-stock" element={<LowStock />} />
             <Route path="adjustments" element={<Adjustments />} />

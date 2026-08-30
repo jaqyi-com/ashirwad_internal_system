@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tags, Truck, ShoppingCart, TrendingUp,
   Users, FileText, BarChart2, Settings, ChevronLeft, ChevronRight,
-  Layers, ArrowLeftRight, UserCheck, ClipboardList,
+  Layers, ArrowLeftRight, UserCheck, ClipboardList, FileSpreadsheet,
   History, Fingerprint, Wifi, UsersRound, MonitorSmartphone, Smartphone, MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
@@ -35,6 +35,7 @@ const navItems = [
     items: [
       { label: 'Customers', path: '/customers', icon: UserCheck },
       { label: 'Sales Orders', path: '/sales', icon: TrendingUp },
+      { label: 'Delivery Challans', path: '/challans', icon: FileSpreadsheet },
     ],
   },
   {
