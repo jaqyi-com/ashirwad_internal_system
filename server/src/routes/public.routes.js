@@ -51,8 +51,6 @@ router.get('/challan/:id', asyncHandler(async (req, res) => {
           phone: true,
           email: true,
           address: true,
-          city: true,
-          state: true,
         }
       }, 
       items: { 
