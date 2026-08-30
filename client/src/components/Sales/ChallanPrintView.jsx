@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import './ChallanPrintView.css';
 
-export default function ChallanPrintView({ sale }) {
+export default function ChallanPrintView({ sale, isPublic = false }) {
   if (!sale) return null;
 
   const invoiceNo = sale.saleNumber;
@@ -12,9 +12,9 @@ export default function ChallanPrintView({ sale }) {
   const dueDate = formatDate(new Date(new Date(sale.saleDate).getTime() + 10 * 24 * 60 * 60 * 1000));
   const customer = sale.customer || {};
 
-  return createPortal(
-    <div className="challan-print-root">
-      <div className="challan-print-container">
+  const content = (
+    <div className={isPublic ? "challan-public-root" : "challan-print-root"}>
+      <div className="challan-print-container" style={isPublic ? { display: 'block', margin: '20px auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '8px' } : {}}>
       <div className="challan-header">
         <div className="challan-left-column">
           <div className="qr-wrapper">
@@ -145,7 +145,8 @@ export default function ChallanPrintView({ sale }) {
         </div>
       </div>
     </div>
-  </div>,
-  document.body
+    </div>
   );
+
+  return isPublic ? content : createPortal(content, document.body);
 }

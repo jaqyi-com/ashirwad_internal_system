@@ -15,6 +15,7 @@ import Suppliers from './pages/Suppliers/Suppliers';
 import Customers from './pages/Customers/Customers';
 import Purchases from './pages/Purchases/Purchases';
 import Challans from './pages/Challans/Challans';
+import ViewChallan from './pages/Public/ViewChallan';
 import Inventory from './pages/Inventory/Inventory';
 import LowStock from './pages/Inventory/LowStock';
 import Adjustments from './pages/Inventory/Adjustments';
@@ -62,6 +63,7 @@ export default function App() {
         />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/view-challan/:id" element={<ViewChallan />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="products" element={<Products />} />
