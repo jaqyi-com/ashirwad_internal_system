@@ -96,9 +96,9 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType, subfolderName
       },
     });
 
-    // Return the direct download link instead of webViewLink if possible, 
-    // or webViewLink if webContentLink is null
-    return response.data.webContentLink || response.data.webViewLink;
+    // webContentLink often forces a download (Content-Disposition: attachment), causing blank images in <img> tags.
+    // The most reliable way to hotlink Google Drive images inline is using the thumbnail endpoint.
+    return `https://drive.google.com/thumbnail?id=${response.data.id}&sz=w1200`;
   } catch (error) {
     console.error("Failed to upload to Google Drive:", error);
     return null;
