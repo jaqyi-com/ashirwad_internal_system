@@ -498,21 +498,12 @@ export default function Challans() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div className="grid-2" style={{ gap: 12 }}>
+                <div style={{ gap: 12, marginBottom: '16px' }}>
                   <div className="form-group">
                     <label className="form-label">Customer</label>
                     <select className="form-select" value={form.customerId} onChange={e => setForm({ ...form, customerId: e.target.value })}>
                       <option value="">Walk-in Customer</option>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ''}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Status</label>
-                    <select className="form-select" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                      <option value="CONFIRMED">CONFIRMED</option>
-                      <option value="INVOICED">INVOICED</option>
-                      <option value="PAID">PAID</option>
-                      <option value="CANCELLED">CANCELLED</option>
                     </select>
                   </div>
                 </div>
