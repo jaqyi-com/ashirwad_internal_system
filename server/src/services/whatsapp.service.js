@@ -1,56 +1,49 @@
-const twilio = require('twilio');
-
 class WhatsAppService {
   constructor() {
-    this.accountSid = process.env.TWILIO_ACCOUNT_SID;
-    this.authToken = process.env.TWILIO_AUTH_TOKEN;
-    this.fromNumber = process.env.TWILIO_WHATSAPP_FROM;
-    
-    if (this.accountSid && this.authToken) {
-      this.client = twilio(this.accountSid, this.authToken);
-    }
+    this.token = process.env.META_WHATSAPP_TOKEN;
+    this.phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+    this.apiVersion = 'v19.0';
   }
 
-  async sendMessage(to, body) {
-    if (!this.client) {
-      console.log(`[WhatsApp Mock] Sending message to ${to}: ${body}`);
-      return { sid: 'mock_sid', status: 'mocked' };
+  async sendMessage(to, bodyText) {
+    if (!this.token || !this.phoneNumberId || this.token.includes('your_meta')) {
+      console.log(`[WhatsApp Mock] Sending message to ${to}: ${bodyText}`);
+      return { status: 'mocked' };
     }
+
+    // Clean phone number (Meta expects pure numbers, e.g., '919876543210' without '+' or 'whatsapp:')
+    let cleanTo = to.replace(/\D/g, '');
 
     try {
-      // Ensure 'to' number starts with 'whatsapp:' if not already
-      const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-      
-      const message = await this.client.messages.create({
-        body: body,
-        from: this.fromNumber,
-        to: formattedTo
+      const response = await fetch(`https://graph.facebook.com/${this.apiVersion}/${this.phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: cleanTo,
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: bodyText
+          }
+        })
       });
-      
-      return message;
-    } catch (error) {
-      console.error(`WhatsApp send error to ${to}:`, error.message);
-      
-      // Retry once logic
-      try {
-        console.log(`Retrying message to ${to}...`);
-        const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-        const message = await this.client.messages.create({
-          body: body,
-          from: this.fromNumber,
-          to: formattedTo
-        });
-        return message;
-      } catch (retryError) {
-        console.error(`WhatsApp retry failed to ${to}:`, retryError.message);
-        throw retryError;
-      }
-    }
-  }
 
-  validateRequest(requestUrl, body, signature) {
-    if (!this.authToken) return true; // skip validation if no token
-    return twilio.validateRequest(this.authToken, signature, requestUrl, body);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to send WhatsApp message');
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`Meta WhatsApp send error to ${cleanTo}:`, error.message);
+      throw error;
+    }
   }
 }
 
