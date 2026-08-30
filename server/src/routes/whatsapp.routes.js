@@ -180,6 +180,7 @@ router.post('/webhook', asyncHandler(async (req, res) => {
         }
       }
     }
+  }
     
     // Successfully processed everything, send 200 OK so Meta doesn't retry
     res.sendStatus(200);
