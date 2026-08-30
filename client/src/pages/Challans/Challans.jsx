@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { formatCurrency, formatDate, formatDateTime, getStatusBadge } from '../../utils/helpers';
-import { Plus, X, Trash2, TrendingUp, Download, Eye, Edit2, Search, Printer } from 'lucide-react';
+import { Plus, X, Trash2, TrendingUp, Download, Eye, Edit2, Search, Printer, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ChallanPrintView from '../../components/Sales/ChallanPrintView';
 
