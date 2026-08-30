@@ -266,7 +266,7 @@ export default function Challans() {
     setTimeout(() => { win.print(); }, 500);
   };
 
-  const filteredSales = sales.filter(s => {
+  const filteredChallans = challans.filter(s => {
     if (!search) return true;
     const q = search.toLowerCase();
     return s.saleNumber.toLowerCase().includes(q) ||
@@ -309,7 +309,7 @@ export default function Challans() {
 
       {/* Table */}
       <div className="table-wrapper">
-        {filteredSales.length === 0 ? (
+        {filteredChallans.length === 0 ? (
           <div className="empty-state">
             <ClipboardList size={48} />
             <h3>No challans found</h3>
@@ -333,7 +333,7 @@ export default function Challans() {
               </tr>
             </thead>
             <tbody>
-              {filteredSales.map(s => (
+              {filteredChallans.map(s => (
                 <tr key={s.id} style={{ cursor: 'pointer' }} onClick={() => setDetail(s)}>
                   <td><span className="mono" style={{ fontWeight: 700 }}>{s.saleNumber}</span></td>
                   <td>
