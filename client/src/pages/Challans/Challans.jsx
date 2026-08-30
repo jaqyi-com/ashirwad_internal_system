@@ -515,10 +515,6 @@ export default function Challans() {
                       <option value="CANCELLED">CANCELLED</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Discount (₹)</label>
-                    <input type="number" min="0" step="0.01" className="form-input" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} />
-                  </div>
                 </div>
 
                 <div>
@@ -571,7 +567,7 @@ export default function Challans() {
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving || form.items.length === 0}>
-                  {saving ? 'Saving...' : editingSale ? 'Update Sale Order' : 'Confirm Sale Order'}
+                  {saving ? 'Saving...' : editingSale ? 'Update Challan' : 'Confirm Challan'}
                 </button>
               </div>
             </form>
