@@ -64,7 +64,7 @@ router.get('/', authenticate, asyncHandler(async (req, res) => {
     prisma.product.findMany({
       where,
       include: { category: true, supplier: true, coatingType: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { name: 'asc' },
       skip, take: parseInt(limit),
     }),
     prisma.product.count({ where }),
