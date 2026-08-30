@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { formatCurrency, formatDate, formatDateTime, getStatusBadge } from '../../utils/helpers';
-import { Plus, X, Trash2, TrendingUp, Download, Eye, Edit2, Search } from 'lucide-react';
+import { Plus, X, Trash2, TrendingUp, Download, Eye, Edit2, Search, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ChallanPrintView from '../../components/Sales/ChallanPrintView';
 
 export default function Sales() {
   const [sales, setSales]           = useState([]);
@@ -17,6 +18,7 @@ export default function Sales() {
   const [saving, setSaving]         = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch]         = useState('');
+  const [printChallanSale, setPrintChallanSale] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -121,6 +123,15 @@ export default function Sales() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePrintChallan = (saleData) => {
+    setPrintChallanSale(saleData);
+    setTimeout(() => {
+      window.print();
+      // Don't reset state immediately to allow print dialog to capture the DOM
+      setTimeout(() => setPrintChallanSale(null), 1000);
+    }, 150);
   };
 
   // ── PDF Print ──────────────────────────────────────────────
@@ -336,6 +347,7 @@ export default function Sales() {
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button className="btn btn-secondary btn-sm btn-icon" title="View Details" onClick={() => setDetail(s)}><Eye size={13} /></button>
                       <button className="btn btn-primary btn-sm btn-icon" title="Download PDF" onClick={() => downloadPDF(s)}><Download size={13} /></button>
+                      <button className="btn btn-primary btn-sm btn-icon" title="Print Challan" onClick={() => handlePrintChallan(s)}><Printer size={13} /></button>
                       <button className="btn btn-secondary btn-sm btn-icon" title="Edit Order" onClick={() => openEdit(s)}><Edit2 size={13} /></button>
                       <button className="btn btn-danger btn-sm btn-icon" title="Delete Order" onClick={() => handleDelete(s)}><Trash2 size={13} /></button>
                     </div>
@@ -363,6 +375,7 @@ export default function Sales() {
                 <button className="btn btn-secondary btn-sm" onClick={() => openEdit(detail)}><Edit2 size={13} /> Edit</button>
                 <button className="btn btn-danger btn-sm" onClick={() => handleDelete(detail)}><Trash2 size={13} /> Delete</button>
                 <button className="btn btn-primary btn-sm" onClick={() => downloadPDF(detail)}><Download size={13} /> Download PDF</button>
+                <button className="btn btn-primary btn-sm" onClick={() => handlePrintChallan(detail)}><Printer size={13} /> Print Challan</button>
                 <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setDetail(null)}><X size={16} /></button>
               </div>
             </div>
@@ -470,6 +483,7 @@ export default function Sales() {
               <button className="btn btn-secondary" onClick={() => setDetail(null)}>Close</button>
               <button className="btn btn-secondary" onClick={() => openEdit(detail)}><Edit2 size={14} /> Edit</button>
               <button className="btn btn-primary" onClick={() => downloadPDF(detail)}><Download size={14} /> Download PDF</button>
+              <button className="btn btn-primary" onClick={() => handlePrintChallan(detail)}><Printer size={14} /> Print Challan</button>
             </div>
           </div>
         </div>
@@ -565,6 +579,8 @@ export default function Sales() {
           </div>
         </div>
       )}
+
+      {printChallanSale && <ChallanPrintView sale={printChallanSale} />}
     </div>
   );
 }
