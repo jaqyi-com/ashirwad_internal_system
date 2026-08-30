@@ -10,6 +10,26 @@
   box-sizing: border-box;
 }
 
+.challan-public-root .challan-print-container {
+  width: 100% !important;
+  min-height: auto !important;
+  max-width: 800px;
+  padding: 20px !important;
+}
+
+@media (max-width: 768px) {
+  .challan-public-root .challan-header {
+    flex-direction: column;
+  }
+  .challan-public-root .challan-left-column,
+  .challan-public-root .challan-right-column {
+    width: 100%;
+  }
+  .challan-public-root .challan-footer {
+    flex-direction: column;
+  }
+}
+
 @media print {
   /* Hide the rest of the app */
   body > *:not(.challan-print-root) {

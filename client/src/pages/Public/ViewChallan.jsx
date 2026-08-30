@@ -14,7 +14,7 @@ export default function ViewChallan() {
       try {
         // Fetch from the new public endpoint, bypassing the internal API interceptor
         // which might try to attach tokens or redirect to login.
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/public/challan/${id}`);
+        const res = await axios.get(`/api/public/challan/${id}`);
         setChallan(res.data);
       } catch (err) {
         setError('This Challan does not exist or has been removed.');
