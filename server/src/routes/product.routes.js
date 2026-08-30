@@ -3,6 +3,7 @@ const multer  = require('multer');
 const prisma  = require('../config/prisma');
 const { asyncHandler } = require('../middleware/error.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
+const { uploadToGoogleDrive } = require('../utils/googleDrive');
 
 const router = express.Router();
 
@@ -19,8 +20,21 @@ const imageUpload = multer({
   { name: 'designImages',  maxCount: 10 },
 ]);
 
-const toDataUris = (files) =>
-  (files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+const processImages = async (files) => {
+  if (!files || files.length === 0) return [];
+  const results = [];
+  for (const f of files) {
+    const ext = f.mimetype.split('/')[1] || 'jpg';
+    const fileName = `img_${Date.now()}_${Math.floor(Math.random()*1000)}.${ext}`;
+    const url = await uploadToGoogleDrive(f.buffer, fileName, f.mimetype);
+    if (url) {
+      results.push(url);
+    } else {
+      results.push(`data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+    }
+  }
+  return results;
+};
 
 const parseIndexArray = (val) => {
   if (!val) return [];
@@ -148,8 +162,11 @@ router.post('/:id/images', authenticate, imageUpload, asyncHandler(async (req, r
   const keptProduct = (existing.productImages || []).filter((_, i) => !removePIdx.includes(i));
   const keptDesign  = (existing.designImages  || []).filter((_, i) => !removeDIdx.includes(i));
 
-  const productImages = [...keptProduct, ...toDataUris(req.files?.productImages)];
-  const designImages  = [...keptDesign,  ...toDataUris(req.files?.designImages)];
+  const newProductUris = await processImages(req.files?.productImages);
+  const newDesignUris  = await processImages(req.files?.designImages);
+
+  const productImages = [...keptProduct, ...newProductUris];
+  const designImages  = [...keptDesign,  ...newDesignUris];
 
   const product = await prisma.product.update({
     where: { id: req.params.id },
