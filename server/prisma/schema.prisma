@@ -409,3 +409,50 @@ enum PunchType {
   UNKNOWN
 }
 
+// ─────────────────────────────────────────────
+// COMPLAINT TICKETING SYSTEM (WhatsApp Integration)
+// ─────────────────────────────────────────────
+
+model ComplaintTicket {
+  id                  String         @id @default(cuid())
+  ticketNumber        String         @unique   // e.g. AE-20260830-0001
+  customerWaNumber    String                   // WhatsApp number e.g. whatsapp:+919876543210
+  customerName        String?
+  customerEmail       String?
+  emailPending        Boolean        @default(false)
+  oemClient           String?
+  originalComplaint   String
+  languageDetected    String         @default("en")
+  translatedComplaint String?
+  status              TicketStatus   @default(OPEN)
+  adminNotified       Boolean        @default(false)
+  customerConfirmed   Boolean        @default(false)
+  failureLogs         String[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([status])
+  @@index([customerWaNumber])
+  @@map("complaint_tickets")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model WhatsAppSession {
+  id             String   @id @default(cuid())
+  waNumber       String   @unique
+  state          String   // awaiting_complaint | awaiting_email | completed
+  tempComplaint  String?
+  emailAttempts  Int      @default(0)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("whatsapp_sessions")
+}
+

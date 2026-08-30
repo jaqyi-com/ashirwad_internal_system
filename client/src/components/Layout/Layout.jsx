@@ -19,6 +19,7 @@ const PAGE_TITLES = {
   '/reports': { title: 'Reports', subtitle: 'Analytics and business insights' },
   '/users': { title: 'User Management', subtitle: 'Manage team access and roles' },
   '/audit': { title: 'Audit Logs', subtitle: 'System activity and change history' },
+  '/complaints': { title: 'Complaints', subtitle: 'Manage customer support tickets' },
   '/settings': { title: 'Settings', subtitle: 'Configure your system' },
   '/attendance': { title: 'Attendance', subtitle: 'Live punch feed for today' },
   '/attendance/report': { title: 'Attendance Report', subtitle: 'Date-range attendance analysis' },

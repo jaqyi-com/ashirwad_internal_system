@@ -54,6 +54,7 @@ export default function MoreScreen() {
     {
       title: 'Operations',
       rows: [
+        { icon: 'message-square', label: 'Complaints', sub: 'Customer support tickets', onPress: () => router.push('/more/complaints') },
         { icon: 'clock', label: 'Attendance', sub: 'Biometric logs & devices', onPress: () => router.push('/more/attendance') },
       ],
     },
