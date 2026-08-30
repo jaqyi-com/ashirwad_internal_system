@@ -18,7 +18,7 @@ export default function ChallanPrintView({ sale }) {
       <div className="challan-header">
         <div className="challan-left-column">
           <div className="qr-wrapper">
-            <QRCodeSVG value={`https://ashirwad.jaqyi.com/sales/${sale.id}`} size={80} level="M" />
+            <QRCodeSVG value={`https://ashirwad.jaqyi.com/view-challan/${sale.id}`} size={80} level="M" />
           </div>
 
           <div className="challan-info-block" style={{ marginTop: '30px' }}>

@@ -12,11 +12,11 @@
 
 @media print {
   /* Hide the rest of the app */
-  body > *:not(.print-root) {
+  body > *:not(.challan-print-root) {
     display: none !important;
   }
   
-  .print-root {
+  .challan-print-root {
     display: block !important;
   }
 
