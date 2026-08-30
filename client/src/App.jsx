@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 
 import Layout from './components/Layout/Layout';
 import TopLoadingBar from './components/Common/TopLoadingBar';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Products from './pages/Products/Products';
@@ -42,50 +43,52 @@ export default function App() {
   }, [theme]);
 
   return (
-    <BrowserRouter>
-      <TopLoadingBar />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-light)',
-            borderRadius: '10px',
-            fontSize: '13px',
-          },
-          success: { iconTheme: { primary: 'var(--green)', secondary: 'var(--bg-card)' } },
-          error: { iconTheme: { primary: 'var(--red)', secondary: 'var(--bg-card)' } },
-        }}
-      />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="purchases" element={<Purchases />} />
-          <Route path="sales" element={<Sales />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="low-stock" element={<LowStock />} />
-          <Route path="adjustments" element={<Adjustments />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="users" element={<Users />} />
-          <Route path="audit" element={<Audit />} />
-          <Route path="complaints" element={<Complaints />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="download" element={<DownloadApp />} />
-          <Route path="attendance" element={<AttendanceDashboard />} />
-          <Route path="attendance/report" element={<AttendanceReport />} />
-          <Route path="attendance/employees" element={<Employees />} />
-          <Route path="attendance/devices" element={<DeviceSettings />} />
-        </Route>
-        {/* Public QR scan route — no auth required */}
-        <Route path="/p/:id" element={<ProductPublicPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <TopLoadingBar />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-light)',
+              borderRadius: '10px',
+              fontSize: '13px',
+            },
+            success: { iconTheme: { primary: 'var(--green)', secondary: 'var(--bg-card)' } },
+            error: { iconTheme: { primary: 'var(--red)', secondary: 'var(--bg-card)' } },
+          }}
+        />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="products" element={<Products />} />
+            <Route path="categories" element={<Categories />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="purchases" element={<Purchases />} />
+            <Route path="sales" element={<Sales />} />
+            <Route path="inventory" element={<Inventory />} />
+            <Route path="low-stock" element={<LowStock />} />
+            <Route path="adjustments" element={<Adjustments />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="users" element={<Users />} />
+            <Route path="audit" element={<Audit />} />
+            <Route path="complaints" element={<Complaints />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="download" element={<DownloadApp />} />
+            <Route path="attendance" element={<AttendanceDashboard />} />
+            <Route path="attendance/report" element={<AttendanceReport />} />
+            <Route path="attendance/employees" element={<Employees />} />
+            <Route path="attendance/devices" element={<DeviceSettings />} />
+          </Route>
+          {/* Public QR scan route — no auth required */}
+          <Route path="/p/:id" element={<ProductPublicPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
