@@ -29,15 +29,13 @@ router.get('/webhook', (req, res) => {
 });
 
 router.post('/webhook', asyncHandler(async (req, res) => {
-  // Acknowledge receipt immediately
-  res.sendStatus(200);
+  try {
+    const body = req.body;
 
-  const body = req.body;
-
-  // Validate incoming webhook structure from Meta
-  if (body.object !== 'whatsapp_business_account') {
-    return;
-  }
+    // Validate incoming webhook structure from Meta
+    if (body.object !== 'whatsapp_business_account') {
+      return res.sendStatus(404);
+    }
 
   // Iterate over entries and changes
   for (const entry of body.entry) {
@@ -182,6 +180,14 @@ router.post('/webhook', asyncHandler(async (req, res) => {
         }
       }
     }
+    
+    // Successfully processed everything, send 200 OK so Meta doesn't retry
+    res.sendStatus(200);
+
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    // Meta requires 200 OK even on failures to prevent endless retries
+    res.sendStatus(200); 
   }
 }));
 
