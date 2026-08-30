@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, RefreshCw, MessageSquare, AlertCircle, CheckCircle2, FileText, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
+import api from '../../utils/api';
 
 const STATUS_COLORS = {
   OPEN: 'var(--red)',
@@ -21,14 +22,10 @@ export default function Complaints() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tickets?search=${search}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch tickets');
-      const data = await res.json();
-      setTickets(data.tickets);
+      const res = await api.get(`/tickets?search=${search}`);
+      setTickets(res.data.tickets || []);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.error || 'Failed to fetch tickets');
     } finally {
       setLoading(false);
     }
@@ -41,15 +38,7 @@ export default function Complaints() {
   const updateStatus = async (id, newStatus) => {
     setUpdating(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tickets/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (!res.ok) throw new Error('Failed to update status');
+      await api.patch(`/tickets/${id}/status`, { status: newStatus });
       toast.success('Status updated successfully');
       
       // Update local state
