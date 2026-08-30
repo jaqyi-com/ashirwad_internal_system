@@ -34,7 +34,6 @@ const navItems = [
     section: 'Sales',
     items: [
       { label: 'Customers', path: '/customers', icon: UserCheck },
-      { label: 'Sales Orders', path: '/sales', icon: TrendingUp },
       { label: 'Delivery Challans', path: '/challans', icon: FileSpreadsheet },
     ],
   },
