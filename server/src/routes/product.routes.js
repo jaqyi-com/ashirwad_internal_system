@@ -20,13 +20,13 @@ const imageUpload = multer({
   { name: 'designImages',  maxCount: 10 },
 ]);
 
-const processImages = async (files) => {
+const processImages = async (files, subfolderName = null) => {
   if (!files || files.length === 0) return [];
   const results = [];
   for (const f of files) {
     const ext = f.mimetype.split('/')[1] || 'jpg';
     const fileName = `img_${Date.now()}_${Math.floor(Math.random()*1000)}.${ext}`;
-    const url = await uploadToGoogleDrive(f.buffer, fileName, f.mimetype);
+    const url = await uploadToGoogleDrive(f.buffer, fileName, f.mimetype, subfolderName);
     if (url) {
       results.push(url);
     } else {
@@ -162,8 +162,10 @@ router.post('/:id/images', authenticate, imageUpload, asyncHandler(async (req, r
   const keptProduct = (existing.productImages || []).filter((_, i) => !removePIdx.includes(i));
   const keptDesign  = (existing.designImages  || []).filter((_, i) => !removeDIdx.includes(i));
 
-  const newProductUris = await processImages(req.files?.productImages);
-  const newDesignUris  = await processImages(req.files?.designImages);
+  const subfolderName = `${existing.partNumber || existing.name}`.replace(/[^a-zA-Z0-9 -]/g, '').trim();
+
+  const newProductUris = await processImages(req.files?.productImages, subfolderName);
+  const newDesignUris  = await processImages(req.files?.designImages, subfolderName);
 
   const productImages = [...keptProduct, ...newProductUris];
   const designImages  = [...keptDesign,  ...newDesignUris];

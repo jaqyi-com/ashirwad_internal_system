@@ -11,9 +11,10 @@ const stream = require('stream');
  * @param {Buffer} fileBuffer - The file buffer to upload
  * @param {String} fileName - The name of the file
  * @param {String} mimeType - The mime type of the file
+ * @param {String} subfolderName - Optional subfolder name to create/use inside the root folder
  * @returns {String} The public webViewLink of the uploaded file, or null if credentials are not set
  */
-const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
+const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType, subfolderName = null) => {
   const credentialsJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
@@ -37,12 +38,41 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType) => {
 
   const drive = google.drive({ version: 'v3', auth });
 
+  let targetFolderId = folderId;
+  
+  if (subfolderName) {
+    try {
+      const query = `name='${subfolderName.replace(/'/g, "\\'")}' and '${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const resList = await drive.files.list({
+        q: query,
+        spaces: 'drive',
+        fields: 'files(id)',
+      });
+
+      if (resList.data.files && resList.data.files.length > 0) {
+        targetFolderId = resList.data.files[0].id;
+      } else {
+        const createRes = await drive.files.create({
+          resource: {
+            name: subfolderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [folderId],
+          },
+          fields: 'id',
+        });
+        targetFolderId = createRes.data.id;
+      }
+    } catch (err) {
+      console.error("Failed to get/create subfolder, using root folder:", err);
+    }
+  }
+
   const bufferStream = new stream.PassThrough();
   bufferStream.end(fileBuffer);
 
   const fileMetadata = {
     name: fileName,
-    parents: [folderId],
+    parents: [targetFolderId],
   };
 
   const media = {
