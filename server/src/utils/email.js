@@ -12,7 +12,7 @@ const sendTicketEmail = async (ticket) => {
   try {
     const mailOptions = {
       from: '"Ashirwad Helpdesk" <akshat@jaqyi.com>',
-      to: 'ashirwad.2512@gmail.com',
+      to: 'ashirwad.2512@gmail.com, akshat@jaqyi.com',
       subject: `New Complaint Ticket Generated: ${ticket.ticketNumber}`,
       html: `
         <h2>New Complaint Ticket Received</h2>
