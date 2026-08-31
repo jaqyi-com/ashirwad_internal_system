@@ -12,7 +12,7 @@ const INITIAL_FORM = {
   name: '', partNumber: '', description: '', specifications: '',
   categoryId: '', company: '', supplierId: '', location: '',
   price: '0', purchasePrice: '0', gstPercent: '18',
-  currentStock: '0', unit: 'pcs', coatingTypeId: '', barcode: '',
+  currentStock: '0', unit: 'pcs', coatingTypeId: '', barcode: '', hsnCode: '',
   customGst: '',
 };
 
@@ -104,6 +104,7 @@ export default function Products() {
       unit:           p.unit          || 'pcs',
       coatingTypeId:  p.coatingTypeId || '',
       barcode:        p.barcode       || '',
+      hsnCode:        p.hsnCode       || '',
       customGst:      isCustomGst ? String(p.gstPercent) : '',
     });
     resetImageState();
@@ -177,6 +178,7 @@ export default function Products() {
         unit:           form.unit,
         coatingTypeId:  form.coatingTypeId  || null,
         barcode:        form.barcode        || null,
+        hsnCode:        form.hsnCode        || null,
       };
 
       let savedProduct;
@@ -414,6 +416,12 @@ export default function Products() {
                           <option key={u} value={u}>{u}</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">HSN Code</label>
+                      <input className="form-input mono" value={form.hsnCode}
+                        onChange={e => setForm({ ...form, hsnCode: e.target.value })}
+                        placeholder="e.g. 8708" />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Barcode</label>

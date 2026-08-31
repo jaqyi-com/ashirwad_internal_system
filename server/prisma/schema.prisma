@@ -142,6 +142,7 @@ model Product {
   coatingTypeId  String?
   coatingType    CoatingType? @relation(fields: [coatingTypeId], references: [id])
   barcode        String?
+  hsnCode        String?
   isActive       Boolean     @default(true)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt

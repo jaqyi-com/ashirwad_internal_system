@@ -105,7 +105,7 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
     name, partNumber, description, specifications,
     categoryId, company, supplierId, location,
     price, purchasePrice, gstPercent,
-    currentStock, unit, coatingTypeId, barcode,
+    currentStock, unit, coatingTypeId, barcode, hsnCode,
     productImages, designImages,
   } = req.body;
 
@@ -131,6 +131,7 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
       designImages:  Array.isArray(designImages)  ? designImages  : [],
       coatingTypeId: coatingTypeId || null,
       barcode:       barcode       || null,
+      hsnCode:       hsnCode       || null,
     },
     include: { category: true, supplier: true, coatingType: true },
   });
@@ -189,7 +190,7 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
     categoryId, company, supplierId, location,
     price, purchasePrice, gstPercent,
     currentStock,
-    unit, coatingTypeId, barcode,
+    unit, coatingTypeId, barcode, hsnCode,
     productImages, designImages,
   } = req.body;
 
@@ -210,6 +211,7 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
       unit:          unit          || existing.unit,
       coatingTypeId: coatingTypeId !== undefined ? coatingTypeId || null : existing.coatingTypeId,
       barcode:       barcode       !== undefined ? barcode       : existing.barcode,
+      hsnCode:       hsnCode       !== undefined ? hsnCode       : existing.hsnCode,
       ...(productImages !== undefined && { productImages: Array.isArray(productImages) ? productImages : [] }),
       ...(designImages  !== undefined && { designImages:  Array.isArray(designImages)  ? designImages  : [] }),
       ...(currentStock !== undefined && { currentStock: parseInt(currentStock) }),
