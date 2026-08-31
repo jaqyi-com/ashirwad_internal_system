@@ -162,7 +162,7 @@ router.post('/:id/images', authenticate, imageUpload, asyncHandler(async (req, r
   const keptProduct = (existing.productImages || []).filter((_, i) => !removePIdx.includes(i));
   const keptDesign  = (existing.designImages  || []).filter((_, i) => !removeDIdx.includes(i));
 
-  const subfolderName = `${existing.partNumber || existing.name}`.replace(/[^a-zA-Z0-9 -]/g, '').trim();
+  const subfolderName = `${existing.name}`.replace(/[^a-zA-Z0-9 -]/g, '').trim();
 
   const newProductUris = await processImages(req.files?.productImages, subfolderName);
   const newDesignUris  = await processImages(req.files?.designImages, subfolderName);
