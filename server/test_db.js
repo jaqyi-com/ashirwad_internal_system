@@ -1,11 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-async function main() {
-  try {
-    const sessions = await prisma.whatsAppSession.findMany();
-    console.log("Sessions found:", sessions.length);
-  } catch (e) {
-    console.error("DB Error:", e.message);
-  }
+const prisma = require('./src/config/prisma');
+async function test() {
+  const p = await prisma.product.findFirst({
+    orderBy: { updatedAt: 'desc' },
+  });
+  console.log("productImages:", p.productImages);
+  console.log("designImages:", p.designImages);
 }
-main();
+test();
