@@ -15,28 +15,27 @@ const stream = require('stream');
  * @returns {String} The public webViewLink of the uploaded file, or null if credentials are not set
  */
 const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType, subfolderName = null) => {
-  const credentialsJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-  if (!credentialsJson || !folderId) {
-    console.warn("Google Drive credentials not found in environment variables. Falling back to base64.");
+  if (!clientId || !clientSecret || !refreshToken || !folderId) {
+    console.warn("Google Drive OAuth2 credentials not found in environment variables. Falling back to base64.");
     return null;
   }
 
-  let credentials;
-  try {
-    credentials = JSON.parse(credentialsJson);
-  } catch (error) {
-    console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:", error);
-    return null;
-  }
+  const oauth2Client = new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    'https://developers.google.com/oauthplayground' // Default redirect URI used for token generation
+  );
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  oauth2Client.setCredentials({
+    refresh_token: refreshToken
   });
 
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
   let targetFolderId = folderId;
   
