@@ -27,10 +27,10 @@ const processImages = async (files, subfolderName = null) => {
     const ext = f.mimetype.split('/')[1] || 'jpg';
     const fileName = `img_${Date.now()}_${Math.floor(Math.random()*1000)}.${ext}`;
     const url = await uploadToGoogleDrive(f.buffer, fileName, f.mimetype, subfolderName);
-    if (url) {
+    if (url && !url.startsWith('ERROR_')) {
       results.push(url);
     } else {
-      results.push(`data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+      throw new Error(`Google Drive Upload Failed: ${url || 'Unknown error'}`);
     }
   }
   return results;

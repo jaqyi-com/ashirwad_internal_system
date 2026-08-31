@@ -21,8 +21,13 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType, subfolderName
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
   if (!clientId || !clientSecret || !refreshToken || !folderId) {
-    console.warn("Google Drive OAuth2 credentials not found in environment variables. Falling back to base64.");
-    return null;
+    const missing = [];
+    if (!clientId) missing.push('clientId');
+    if (!clientSecret) missing.push('clientSecret');
+    if (!refreshToken) missing.push('refreshToken');
+    if (!folderId) missing.push('folderId');
+    console.warn("Google Drive OAuth2 credentials not found. Missing:", missing);
+    return `ERROR_MISSING_CREDENTIALS: ${missing.join(', ')}`;
   }
 
   const oauth2Client = new google.auth.OAuth2(
@@ -100,7 +105,7 @@ const uploadToGoogleDrive = async (fileBuffer, fileName, mimeType, subfolderName
     return `https://drive.google.com/thumbnail?id=${response.data.id}&sz=w1200`;
   } catch (error) {
     console.error("Failed to upload to Google Drive:", error);
-    return null;
+    return `ERROR_DRIVE_UPLOAD: ${error.message || 'Unknown error'}`;
   }
 };
 
