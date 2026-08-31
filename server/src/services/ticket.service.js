@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendTicketEmail } = require('../utils/email');
 
 class TicketService {
   async generateTicketNumber() {
@@ -31,6 +32,9 @@ class TicketService {
         ticketNumber
       }
     });
+    
+    // Send email notification (non-blocking)
+    sendTicketEmail(ticket).catch(err => console.error('Failed to send email notification:', err));
     
     return ticket;
   }
