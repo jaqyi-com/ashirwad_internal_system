@@ -265,6 +265,7 @@ export default function Products() {
               <tr>
                 <th>Product</th>
                 <th className="hide-mobile">Part No.</th>
+                <th className="hide-mobile">HSN Code</th>
                 <th className="hide-mobile">Category</th>
                 <th className="hide-tablet">Supplier</th>
                 <th className="hide-tablet">Location</th>
@@ -303,7 +304,10 @@ export default function Products() {
                       </div>
                     </td>
                     <td className="hide-mobile">
-                      {p.partNumber && <div style={{ fontSize: '12px' }}>{p.partNumber}</div>}
+                      {p.partNumber ? <div style={{ fontSize: '12px' }}>{p.partNumber}</div> : '—'}
+                    </td>
+                    <td className="hide-mobile">
+                      {p.hsnCode ? <div style={{ fontSize: '12px' }}>{p.hsnCode}</div> : '—'}
                     </td>
                     <td className="hide-mobile">
                       {p.category ? <span className="badge badge-blue">{p.category.name}</span> : '—'}
