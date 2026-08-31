@@ -118,7 +118,7 @@ export default function Products() {
     toast.loading('Compressing images...', { id: 'compress' });
     try {
       const compressedItems = await Promise.all(files.map(async (f) => {
-        const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: false };
+        const options = { maxSizeMB: 0.2, maxWidthOrHeight: 800, useWebWorker: true };
         const compressedFile = await imageCompression(f, options);
         return { file: compressedFile, preview: URL.createObjectURL(compressedFile) };
       }));
