@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '../../../store/themeStore';
-import { Colors, Spacing, Radius } from '../../../constants/Colors';
-import { getTickets, updateTicketStatus, Ticket } from '../../../services/ticketService';
+import { useTheme } from '../../store/themeStore';
+import { Colors, Spacing, Radius } from '../../constants/Colors';
+import { getTickets, updateTicketStatus, Ticket } from '../../services/ticketService';
 import { router } from 'expo-router';
 
 const STATUS_COLORS = {
