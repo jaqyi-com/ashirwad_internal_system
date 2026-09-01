@@ -8,7 +8,6 @@ import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Skeleton } from 'moti/skeleton';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
