@@ -125,14 +125,16 @@ html {
 
 /* Sidebar */
 .sidebar {
-  width: 240px;
-  background: var(--bg-sidebar);
+  width: 260px;
+  background: color-mix(in srgb, var(--bg-sidebar) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   flex-shrink: 0;
-  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 300;
 }
 
 .sidebar.collapsed { width: 64px; }
@@ -200,15 +202,18 @@ html {
 
 /* Header */
 .header {
-  height: 60px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  height: 64px;
+  background: color-mix(in srgb, var(--bg-card) 75%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  flex-shrink: 0;
-  min-width: 0;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

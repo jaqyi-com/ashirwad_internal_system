@@ -4,6 +4,7 @@ import MobileBottomNav from './MobileBottomNav';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
 const PAGE_TITLES = {
   '/': { title: 'Dashboard', subtitle: 'Ashirwad Enterprises Inventory Overview' },
@@ -48,7 +49,9 @@ export default function Layout() {
       <div className="main-content">
         <Header title={page.title} subtitle={page.subtitle} />
         <div className="page-content">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <Outlet key={pathname} />
+          </AnimatePresence>
         </div>
       </div>
 

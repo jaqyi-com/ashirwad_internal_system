@@ -8,6 +8,8 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { motion } from 'framer-motion';
+import AnimatedPage from '../../components/Common/AnimatedPage';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -110,11 +112,30 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <AnimatedPage>
       {/* Stat Grid */}
-      <div className="grid-stat" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <motion.div
+        className="grid-stat"
+        style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+        }}
+      >
         {statCards.map((s, i) => (
-          <div key={i} className="stat-card">
+          <motion.div
+            key={i}
+            className="stat-card"
+            variants={{
+              hidden: { opacity: 0, scale: 0.95, y: 15 },
+              show: { opacity: 1, scale: 1, y: 0 },
+            }}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          >
             <div>
               <div className="stat-card-value">{s.value}</div>
               <div className="stat-card-label">{s.label}</div>
@@ -123,9 +144,9 @@ export default function Dashboard() {
             <div className="stat-card-icon" style={{ background: s.bg }}>
               <s.icon size={22} style={{ color: s.color }} />
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Charts Row */}
       <div className="grid-2" style={{ marginBottom: '24px' }}>
@@ -253,7 +274,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </div>
+    </AnimatedPage>
   );
 }
 
