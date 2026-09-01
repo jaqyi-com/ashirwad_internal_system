@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { View, Platform } from 'react-native';
 import { useTheme } from '../../store/themeStore';
-import { Colors, Radius } from '../../constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabIcon({ name, focused }: { name: any; focused: boolean }) {
   const { colors } = useTheme();
@@ -27,6 +27,9 @@ function TabIcon({ name, focused }: { name: any; focused: boolean }) {
 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 8);
+  const tabBarHeight = 54 + bottomPadding;
 
   return (
     <Tabs
@@ -36,8 +39,8 @@ export default function TabsLayout() {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 82 : 62,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: tabBarHeight,
+          paddingBottom: bottomPadding,
           paddingTop: 6,
           elevation: 20,
           shadowColor: '#000',
