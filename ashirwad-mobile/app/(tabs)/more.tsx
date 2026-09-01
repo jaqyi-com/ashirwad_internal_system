@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { MotiView } from 'moti';
 import { router } from 'expo-router';
 import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
@@ -54,8 +55,17 @@ export default function MoreScreen() {
     {
       title: 'Operations',
       rows: [
+        { icon: 'file-text', label: 'Delivery Challans', sub: 'Manage shipping challans', onPress: () => router.push('/more/challans') },
         { icon: 'message-square', label: 'Complaints', sub: 'Customer support tickets', onPress: () => router.push('/more/complaints') },
         { icon: 'clock', label: 'Attendance', sub: 'Biometric logs & devices', onPress: () => router.push('/more/attendance') },
+      ],
+    },
+    {
+      title: 'Administration',
+      rows: [
+        { icon: 'users', label: 'User Management', sub: 'Roles and access control', onPress: () => router.push('/more/users') },
+        { icon: 'clipboard', label: 'Audit Logs', sub: 'System activity history', onPress: () => router.push('/more/audit') },
+        { icon: 'settings', label: 'Settings', sub: 'System config & coatings', onPress: () => router.push('/more/settings') },
       ],
     },
     {
@@ -120,8 +130,14 @@ export default function MoreScreen() {
         </View>
 
         {/* ── Other Sections ── */}
-        {sections.map(section => (
-          <View key={section.title} style={styles.section}>
+        {sections.map((section, sectionIdx) => (
+          <MotiView
+            key={section.title}
+            style={styles.section}
+            from={{ opacity: 0, translateY: 15 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', delay: (sectionIdx + 1) * 100 }}
+          >
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
             <View style={[styles.sectionCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
               {section.rows.map((row, idx) => (
@@ -157,7 +173,7 @@ export default function MoreScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </MotiView>
         ))}
 
         <Text style={[styles.version, { color: colors.textMuted }]}>Ashirwad IMS · v1.0.0</Text>

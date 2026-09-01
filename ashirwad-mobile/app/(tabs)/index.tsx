@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, RefreshControl,
-  ActivityIndicator,
+  StyleSheet
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MotiView } from 'moti';
+import { Skeleton } from 'moti/skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { useAuth } from '../../store/authStore';
@@ -37,9 +40,18 @@ export default function DashboardScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgPrimary }}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgPrimary }} edges={['top']}>
+        <View style={{ padding: Spacing.xl, paddingBottom: 28 }}>
+          <Skeleton colorMode={colors.bgPrimary === '#000000' || colors.bgPrimary === '#121212' ? 'dark' : 'light'} width={120} height={20} />
+          <View style={{ height: 8 }} />
+          <Skeleton colorMode={colors.bgPrimary === '#000000' || colors.bgPrimary === '#121212' ? 'dark' : 'light'} width={180} height={28} />
+        </View>
+        <View style={{ padding: Spacing.lg, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }}>
+          {[1,2,3,4,5,6].map((i) => (
+            <Skeleton key={i} colorMode={colors.bgPrimary === '#000000' || colors.bgPrimary === '#121212' ? 'dark' : 'light'} width="48%" height={120} />
+          ))}
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -86,20 +98,33 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Stat grid */}
-        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Overview</Text>
-        <View style={styles.statGrid}>
-          {statCards.map((s) => (
-            <StatCard
-              key={s.label}
-              label={s.label}
-              value={s.value}
-              sub={s.sub}
-              color={s.color}
-              bgColor={s.bg}
-              icon={<Feather name={s.icon as any} size={18} color={s.color} />}
-            />
-          ))}
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 500 }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Overview</Text>
+          <View style={styles.statGrid}>
+            {statCards.map((s, index) => (
+              <MotiView
+                key={s.label}
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', delay: index * 50 }}
+                style={{ width: '48%' }}
+              >
+                <StatCard
+                  label={s.label}
+                  value={s.value}
+                  sub={s.sub}
+                  color={s.color}
+                  bgColor={s.bg}
+                  icon={<Feather name={s.icon as any} size={18} color={s.color} />}
+                />
+              </MotiView>
+            ))}
+          </View>
+        </MotiView>
 
         {/* Top Products */}
         {topProducts?.length > 0 && (
@@ -119,28 +144,35 @@ export default function DashboardScreen() {
         )}
 
         {/* Recent transactions */}
-        {recentTransactions?.length > 0 && (
-          <>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Recent Activity</Text>
-            {recentTransactions.slice(0, 6).map((t: any) => (
-              <ListItem
-                key={t.id}
-                title={t.product?.name ?? 'Unknown'}
-                subtitle={new Date(t.createdAt).toLocaleDateString('en-IN')}
-                badge={t.transactionType?.replace('_', ' ')}
-                badgeColor={
-                  t.transactionType?.includes('IN') ? colors.green : colors.red
-                }
-                badgeBg={
-                  t.transactionType?.includes('IN')
-                    ? 'rgba(16,185,129,0.12)'
-                    : 'rgba(239,68,68,0.12)'
-                }
-                showChevron={false}
-              />
-            ))}
-          </>
-        )}
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 500, delay: 200 }}
+        >
+          {recentTransactions?.length > 0 && (
+            <>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.lg, marginBottom: Spacing.sm }}>Recent Activity</Text>
+              {recentTransactions.slice(0, 6).map((t: any, idx: number) => (
+                <ListItem
+                  key={t.id}
+                  index={idx}
+                  title={t.product?.name ?? 'Unknown'}
+                  subtitle={new Date(t.createdAt).toLocaleDateString('en-IN')}
+                  badge={t.transactionType?.replace('_', ' ')}
+                  badgeColor={
+                    t.transactionType?.includes('IN') ? colors.green : colors.red
+                  }
+                  badgeBg={
+                    t.transactionType?.includes('IN')
+                      ? 'rgba(16,185,129,0.12)'
+                      : 'rgba(239,68,68,0.12)'
+                  }
+                  showChevron={false}
+                />
+              ))}
+            </>
+          )}
+        </MotiView>
 
         <View style={{ height: 20 }} />
       </ScrollView>

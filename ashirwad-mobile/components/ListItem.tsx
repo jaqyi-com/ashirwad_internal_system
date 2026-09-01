@@ -1,8 +1,7 @@
-import React from 'react';
-import {
-  View, Text, TouchableOpacity, Image,
-} from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { MotiPressable } from 'moti/interactions';
 import { useTheme } from '../store/themeStore';
 import { Radius, Spacing } from '../constants/Colors';
 
@@ -17,6 +16,7 @@ interface ListItemProps {
   rightLabel?: string;
   onPress?: () => void;
   showChevron?: boolean;
+  index?: number;
 }
 
 export default function ListItem({
@@ -30,12 +30,24 @@ export default function ListItem({
   rightLabel,
   onPress,
   showChevron = true,
+  index = 0,
 }: ListItemProps) {
   const { colors } = useTheme();
   const bColor = badgeColor ?? colors.green;
 
   return (
-    <TouchableOpacity
+    <MotiPressable
+      from={{ opacity: 0, translateY: 15 }}
+      animate={useMemo(() => ({ pressed }) => {
+        'worklet';
+        return {
+          opacity: 1,
+          translateY: 0,
+          scale: pressed ? 0.98 : 1,
+        };
+      }, [])}
+      transition={{ type: 'timing', duration: 300, delay: index * 50 }}
+      onPress={onPress}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -46,8 +58,6 @@ export default function ListItem({
         borderColor: colors.border,
         marginBottom: Spacing.sm,
       }}
-      onPress={onPress}
-      activeOpacity={0.7}
     >
       {/* Left thumbnail */}
       <View style={{ marginRight: Spacing.md, flexShrink: 0 }}>
@@ -99,6 +109,6 @@ export default function ListItem({
           <Feather name="chevron-right" size={16} color={colors.textMuted} style={{ marginLeft: 2 }} />
         )}
       </View>
-    </TouchableOpacity>
+    </MotiPressable>
   );
 }

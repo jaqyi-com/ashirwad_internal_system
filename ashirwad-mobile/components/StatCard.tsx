@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text } from 'react-native';
+import { MotiPressable } from 'moti/interactions';
 import { useTheme } from '../store/themeStore';
 import { Radius, Spacing } from '../constants/Colors';
 
@@ -16,7 +17,18 @@ interface StatCardProps {
 export default function StatCard({ label, value, icon, color, bgColor, sub, onPress }: StatCardProps) {
   const { colors, isDark } = useTheme();
   return (
-    <TouchableOpacity
+    <MotiPressable
+      animate={useMemo(
+        () =>
+          ({ pressed }) => {
+            'worklet';
+            return {
+              scale: pressed ? 0.96 : 1,
+            };
+          },
+        []
+      )}
+      onPress={onPress}
       style={{
         width: '48%',
         backgroundColor: colors.bgCard,
@@ -33,8 +45,6 @@ export default function StatCard({ label, value, icon, color, bgColor, sub, onPr
         shadowRadius: 10,
         elevation: 3,
       }}
-      onPress={onPress}
-      activeOpacity={0.75}
     >
       <View>
         <View style={{
@@ -60,6 +70,6 @@ export default function StatCard({ label, value, icon, color, bgColor, sub, onPr
           </Text>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </MotiPressable>
   );
 }
