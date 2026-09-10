@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
   count: { fontSize: 12, color: Colors.textMuted },
-  list: { padding: Spacing.lg, paddingBottom: 40 },
+  list: { padding: Spacing.lg, paddingBottom: 100 },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyText: { fontSize: 15, color: Colors.textSecondary },
   loadingOverlay: {

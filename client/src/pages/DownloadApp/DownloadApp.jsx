@@ -1,9 +1,9 @@
 import { Smartphone, Download, Shield, Wifi, Package, TrendingUp, ShoppingCart, BarChart2, CheckCircle, ChevronRight } from 'lucide-react';
 import './DownloadApp.css';
 
-const APK_URL = '/ashirwad-ims.apk';
-const APK_VERSION = '1.0.0';
-const APK_SIZE = '41 MB';
+const APK_URL = '/ashirwad-ims.apk?v=1.0.1';
+const APK_VERSION = '1.0.1';
+const APK_SIZE = '45 MB';
 
 const features = [
   { icon: Package,      label: 'Products',  desc: 'Full inventory with search & details' },

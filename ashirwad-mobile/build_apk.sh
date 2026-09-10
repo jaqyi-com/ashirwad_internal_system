@@ -16,10 +16,10 @@ echo "=== Setting up Gradle on /Volumes/akshat ==="
 mkdir -p /Volumes/akshat/.gradle
 
 echo "=== Building APK ==="
-export ANDROID_HOME=$HOME/Library/Android/sdk
+export ANDROID_HOME=/Volumes/akshat/android-sdk
 export GRADLE_USER_HOME=/Volumes/akshat/.gradle
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
-export PATH=$JAVA_HOME/bin:$PATH
+export PATH=$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
 
 cd /Volumes/akshat/Ashirwad_Internal_System/ashirwad-mobile/android
 ./gradlew assembleRelease

@@ -28,8 +28,8 @@ function TabIcon({ name, focused }: { name: any; focused: boolean }) {
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const bottomPadding = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 8);
-  const tabBarHeight = 54 + bottomPadding;
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 16);
+  const tabBarHeight = 58 + bottomInset;
 
   return (
     <Tabs
@@ -40,18 +40,21 @@ export default function TabsLayout() {
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: bottomPadding,
-          paddingTop: 6,
+          paddingBottom: bottomInset + 4,
+          paddingTop: 8,
           elevation: 20,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: isDark ? 0.3 : 0.08,
           shadowRadius: 16,
         },
+        tabBarItemStyle: {
+          paddingVertical: 2,
+        },
         tabBarActiveTintColor: colors.accentLight,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 9.5,
+          fontSize: 10,
           fontWeight: '600',
           letterSpacing: 0.2,
           marginTop: 2,

@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   filterPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   filterPillTxt: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   filterPillTxtActive: { color: '#fff', fontWeight: '700' },
-  list: { padding: Spacing.lg, paddingBottom: 40 },
+  list: { padding: Spacing.lg, paddingBottom: 100 },
   card: {
     backgroundColor: Colors.bgCard,
     borderRadius: Radius.lg,
