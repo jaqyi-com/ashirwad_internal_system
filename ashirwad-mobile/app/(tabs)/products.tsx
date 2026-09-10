@@ -12,7 +12,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import api from '../../services/api';
 import { useTheme } from '../../store/themeStore';
 import SearchBar from '../../components/SearchBar';
-import { Colors, Spacing, Radius } from '../../constants/Colors';
+import { Colors, Spacing, Radius, Shadows } from '../../constants/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -230,29 +230,73 @@ export default function ProductsScreen() {
     return            { label: `${qty} units`,     color: Colors.green,  bg: 'rgba(16,185,129,0.12)' };
   };
 
+  const [filterMode, setFilterMode]   = useState<'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL');
+
+  const filteredProducts = products.filter(p => {
+    if (filterMode === 'IN_STOCK') return p.currentStock > 10;
+    if (filterMode === 'LOW_STOCK') return p.currentStock > 0 && p.currentStock <= 10;
+    if (filterMode === 'OUT_OF_STOCK') return p.currentStock <= 0;
+    return true;
+  });
+
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Products</Text>
-          <Text style={[styles.count, { color: colors.textMuted }]}>{total.toLocaleString('en-IN')} items</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Products Catalog</Text>
+          <Text style={[styles.count, { color: colors.textMuted }]}>{total.toLocaleString('en-IN')} total items in inventory</Text>
         </View>
-        <TouchableOpacity onPress={openAdd} style={[styles.addBtn, { backgroundColor: colors.accent }]}>
+        <TouchableOpacity onPress={openAdd} style={[styles.addBtn, { backgroundColor: colors.accent }]} activeOpacity={0.8}>
           <Feather name="plus" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <FlatList
-        data={products}
+        data={filteredProducts}
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <SearchBar
-            value={search}
-            onChangeText={v => { setSearch(v); setPage(1); }}
-            placeholder="Search products, part number..."
-          />
+          <View style={{ marginBottom: 4 }}>
+            <SearchBar
+              value={search}
+              onChangeText={v => { setSearch(v); setPage(1); }}
+              placeholder="Search by name, part number, company..."
+            />
+            {/* Filter Pills */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+              {[
+                { id: 'ALL', label: 'All Items', count: total },
+                { id: 'IN_STOCK', label: 'In Stock' },
+                { id: 'LOW_STOCK', label: 'Low Stock' },
+                { id: 'OUT_OF_STOCK', label: 'Out of Stock' },
+              ].map(f => {
+                const active = filterMode === f.id;
+                return (
+                  <TouchableOpacity
+                    key={f.id}
+                    onPress={() => setFilterMode(f.id as any)}
+                    style={[
+                      styles.filterPill,
+                      { backgroundColor: colors.bgCard, borderColor: colors.border },
+                      active && { backgroundColor: colors.accent, borderColor: colors.accent },
+                    ]}
+                    activeOpacity={0.75}
+                  >
+                    <Text
+                      style={[
+                        styles.filterPillTxt,
+                        { color: colors.textSecondary },
+                        active && { color: '#ffffff', fontWeight: '700' },
+                      ]}
+                    >
+                      {f.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         }
         renderItem={({ item }) => {
           const s = stockBadge(item.currentStock);
@@ -261,7 +305,7 @@ export default function ProductsScreen() {
 
           return (
             <TouchableOpacity
-              style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+              style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }, isDark ? Shadows.sm : {}]}
               onPress={() => setSelected(item)}
               activeOpacity={0.75}
             >
@@ -270,7 +314,7 @@ export default function ProductsScreen() {
                   <Image source={{ uri: img }} style={styles.thumb} />
                 ) : (
                   <View style={[styles.thumbPlaceholder, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
-                    <Feather name="package" size={22} color={colors.textMuted} />
+                    <Feather name="package" size={22} color={colors.accentLight} />
                   </View>
                 )}
                 {imgCount > 0 && (
@@ -281,38 +325,53 @@ export default function ProductsScreen() {
                 )}
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
                 <Text style={[styles.cardName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
-                {item.partNumber ? (
-                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>Part: {item.partNumber}</Text>
-                ) : item.category?.name ? (
-                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>{item.category.name}</Text>
-                ) : null}
+                
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                  {item.partNumber ? (
+                    <View style={[styles.partBadge, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+                      <Text style={[styles.partText, { color: colors.textSecondary }]}>P/N: {item.partNumber}</Text>
+                    </View>
+                  ) : null}
+                  {item.category?.name ? (
+                    <Text style={[styles.cardSub, { color: colors.textMuted }]} numberOfLines={1}>{item.category.name}</Text>
+                  ) : null}
+                </View>
+
                 {item.price ? (
                   <Text style={[styles.cardPrice, { color: colors.green }]}>
                     ₹{Number(item.price).toLocaleString('en-IN')}
+                    <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: '500' }}> / {item.unit || 'pcs'}</Text>
                   </Text>
                 ) : null}
               </View>
 
-              <View>
-                <View style={[styles.badge, { backgroundColor: s.bg }]}>
+              <View style={{ alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+                <View style={[styles.badge, { backgroundColor: s.bg, borderColor: `${s.color}30`, borderWidth: 1 }]}>
                   <Text style={[styles.badgeText, { color: s.color }]}>{s.label}</Text>
                 </View>
                 <View style={styles.cardActions}>
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]}
-                    onPress={() => openEdit(item)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                    onPress={() => openQuickStock(item)}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 3 }}
                   >
-                    <Feather name="edit-2" size={14} color={colors.accentLight} />
+                    <Feather name="refresh-cw" size={13} color={colors.accentLight} />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionBtn, { borderColor: 'rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.08)' }]}
-                    onPress={() => handleDelete(item)}
-                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                    style={[styles.actionBtn, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}
+                    onPress={() => openEdit(item)}
+                    hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }}
                   >
-                    <Feather name="trash-2" size={14} color={colors.red} />
+                    <Feather name="edit-2" size={13} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { borderColor: 'rgba(239,68,68,0.25)', backgroundColor: 'rgba(239,68,68,0.08)' }]}
+                    onPress={() => handleDelete(item)}
+                    hitSlop={{ top: 6, bottom: 6, left: 3, right: 6 }}
+                  >
+                    <Feather name="trash-2" size={13} color={colors.red} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1215,18 +1274,27 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bgPrimary },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
   },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+  title: { fontSize: 20, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.4 },
   count: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   addBtn: {
-    width: 42, height: 42, borderRadius: 21,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: Colors.accent,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 8, elevation: 4,
   },
-  list: { padding: Spacing.lg, paddingBottom: 100 },
+  filterScroll: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
+  filterPill: {
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: Radius.full,
+    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: Colors.bgCard,
+  },
+  filterPillTxt: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  list: { padding: Spacing.lg, paddingBottom: 110 },
   card: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     backgroundColor: Colors.bgCard,
@@ -1235,9 +1303,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   thumbWrapper: { position: 'relative' },
-  thumb: { width: 52, height: 52, borderRadius: Radius.md, backgroundColor: Colors.bgSecondary },
+  thumb: { width: 54, height: 54, borderRadius: Radius.md, backgroundColor: Colors.bgSecondary },
   thumbPlaceholder: {
-    width: 52, height: 52, borderRadius: Radius.md,
+    width: 54, height: 54, borderRadius: Radius.md,
     backgroundColor: Colors.bgSecondary,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: Colors.border,
@@ -1249,20 +1317,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 2,
   },
   imgBadgeTxt: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  cardName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
-  cardSub:  { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  cardPrice: { fontSize: 13, fontWeight: '700', color: Colors.green, marginTop: 3 },
+  cardName: { fontSize: 14.5, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.2 },
+  partBadge: {
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: Radius.xs,
+    borderWidth: 1,
+  },
+  partText: { fontSize: 10, fontWeight: '700' },
+  cardSub:  { fontSize: 11.5, color: Colors.textMuted },
+  cardPrice: { fontSize: 13.5, fontWeight: '700', color: Colors.green, marginTop: 4 },
   badge: {
     borderRadius: Radius.full,
     paddingHorizontal: 8, paddingVertical: 3,
-    alignSelf: 'flex-end', marginBottom: 6,
+    alignSelf: 'flex-end', marginBottom: 2,
   },
-  badgeText: { fontSize: 11, fontWeight: '700' },
+  badgeText: { fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' },
   cardActions: { flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
   actionBtn: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: Colors.accentGlow,
-    borderWidth: 1, borderColor: Colors.accent,
+    width: 30, height: 30, borderRadius: Radius.sm,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },

@@ -1,26 +1,46 @@
 import { Tabs } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
+import { View, Platform, Text } from 'react-native';
 import { useTheme } from '../../store/themeStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Radius } from '../../constants/Colors';
 
-function TabIcon({ name, focused }: { name: any; focused: boolean }) {
-  const { colors } = useTheme();
+function TabIcon({ name, label, focused }: { name: any; label: string; focused: boolean }) {
+  const { colors, isDark } = useTheme();
+
   return (
-    <View style={{ alignItems: 'center', position: 'relative' }}>
-      {focused && (
-        <View style={{
-          position: 'absolute', top: -9,
-          width: 28, height: 3, borderRadius: 2,
-          backgroundColor: colors.accent,
-        }} />
-      )}
-      <Feather
-        name={name}
-        size={22}
-        color={focused ? colors.accentLight : colors.textMuted}
-        strokeWidth={focused ? 2.2 : 1.8}
-      />
+    <View style={{ alignItems: 'center', justifyContent: 'center', minWidth: 54, paddingTop: 4 }}>
+      <View
+        style={{
+          width: 44,
+          height: 30,
+          borderRadius: Radius.full,
+          backgroundColor: focused ? colors.accentGlow : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: focused ? (isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)') : 'transparent',
+          marginBottom: 3,
+        }}
+      >
+        <Feather
+          name={name}
+          size={19}
+          color={focused ? colors.accentLight : colors.textMuted}
+          strokeWidth={focused ? 2.4 : 1.8}
+        />
+      </View>
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: focused ? '700' : '500',
+          letterSpacing: 0.2,
+          color: focused ? colors.accentLight : colors.textMuted,
+        }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -40,63 +60,53 @@ export default function TabsLayout() {
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: bottomInset + 4,
-          paddingTop: 8,
-          elevation: 20,
+          paddingBottom: bottomInset + 2,
+          paddingTop: 4,
+          elevation: 24,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: isDark ? 0.3 : 0.08,
+          shadowOpacity: isDark ? 0.35 : 0.06,
           shadowRadius: 16,
         },
-        tabBarItemStyle: {
-          paddingVertical: 2,
-        },
-        tabBarActiveTintColor: colors.accentLight,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-          marginTop: 2,
-        },
-        tabBarShowLabel: true,
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="grid" label="Home" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="products"
         options={{
           title: 'Products',
-          tabBarIcon: ({ focused }) => <TabIcon name="package" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="package" label="Products" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="sales"
         options={{
           title: 'Sales',
-          tabBarIcon: ({ focused }) => <TabIcon name="trending-up" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="trending-up" label="Sales" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="purchases"
         options={{
           title: 'Purchases',
-          tabBarIcon: ({ focused }) => <TabIcon name="shopping-cart" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="shopping-cart" label="Purchases" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ focused }) => <TabIcon name="more-horizontal" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="more-horizontal" label="More" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
+

@@ -176,7 +176,6 @@ export default function PurchasesScreen() {
       return;
     }
 
-    // Validate quantities & rates
     for (const it of poForm.items) {
       if (!it.productId) {
         Alert.alert('Validation', 'Please select a product for each line item.');
@@ -300,13 +299,16 @@ export default function PurchasesScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Purchase Orders</Text>
-          <Text style={[styles.count, { color: colors.textMuted }]}>{total} orders</Text>
+          <Text style={[styles.count, { color: colors.textMuted }]}>
+            {total.toLocaleString('en-IN')} purchase orders
+          </Text>
         </View>
-        <TouchableOpacity onPress={openCreatePO} style={[styles.createBtn, { backgroundColor: colors.accent }]}>
-          <Feather name="plus" size={20} color="#fff" />
+        <TouchableOpacity onPress={openCreatePO} style={[styles.createBtn, { backgroundColor: colors.accent }]} activeOpacity={0.8}>
+          <Feather name="plus" size={18} color="#fff" />
+          <Text style={styles.createBtnTxt}>New PO</Text>
         </TouchableOpacity>
       </View>
 
@@ -321,12 +323,13 @@ export default function PurchasesScreen() {
                 style={[
                   styles.filterPill,
                   { backgroundColor: colors.bgCard, borderColor: colors.border },
-                  isActive && [styles.filterPillActive, { backgroundColor: colors.accent, borderColor: colors.accent }]
+                  isActive && [styles.filterPillActive, { backgroundColor: colors.accentGlow, borderColor: colors.accent }]
                 ]}
                 onPress={() => { setStatusFilter(st); setPage(1); }}
+                activeOpacity={0.7}
               >
-                <Text style={[styles.filterPillTxt, { color: colors.textSecondary }, isActive && styles.filterPillTxtActive]}>
-                  {st ? st.replace('_', ' ') : 'All'}
+                <Text style={[styles.filterPillTxt, { color: colors.textSecondary }, isActive && { color: colors.accentLight, fontWeight: '700' }]}>
+                  {st ? st.replace('_', ' ') : 'All Orders'}
                 </Text>
               </TouchableOpacity>
             );
@@ -340,11 +343,13 @@ export default function PurchasesScreen() {
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <SearchBar
-            value={search}
-            onChangeText={v => { setSearch(v); setPage(1); }}
-            placeholder="Search PO number, supplier..."
-          />
+          <View style={{ marginBottom: Spacing.sm }}>
+            <SearchBar
+              value={search}
+              onChangeText={v => { setSearch(v); setPage(1); }}
+              placeholder="Search PO number, supplier name..."
+            />
+          </View>
         }
         renderItem={({ item }) => {
           const badge = getStatusBadge(item.status);
@@ -358,11 +363,17 @@ export default function PurchasesScreen() {
             >
               <View style={styles.cardHeaderRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.poNumber, { color: colors.textPrimary }]}>{item.poNumber || `PO #${item.id.slice(-6)}`}</Text>
-                  <Text style={[styles.supplierName, { color: colors.accentLight }]}>{item.supplier?.name || 'Unknown Supplier'}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-                  <Text style={[styles.statusBadgeTxt, { color: badge.color }]}>{badge.label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <Text style={[styles.poNumber, { color: colors.textPrimary }]}>
+                      {item.poNumber || `PO #${String(item.id).slice(-6)}`}
+                    </Text>
+                    <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                      <Text style={[styles.statusBadgeTxt, { color: badge.color }]}>{badge.label}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.supplierName, { color: colors.accentLight }]}>
+                    {item.supplier?.name || 'Unknown Supplier'}
+                  </Text>
                 </View>
               </View>
 
@@ -402,10 +413,12 @@ export default function PurchasesScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Feather name="shopping-bag" size={48} color={colors.textMuted} />
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.bgSecondary }]}>
+                <Feather name="shopping-bag" size={36} color={colors.textMuted} />
+              </View>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No purchase orders found</Text>
               <TouchableOpacity style={[styles.emptyAddBtn, { backgroundColor: colors.accent }]} onPress={openCreatePO}>
-                <Feather name="plus" size={16} color="#fff" />
+                <Feather name="plus" size={15} color="#fff" />
                 <Text style={styles.emptyAddText}>Create Purchase Order</Text>
               </TouchableOpacity>
             </View>
@@ -498,12 +511,12 @@ function PurchaseDetail({
   const canEdit = po.status === 'DRAFT' || po.status === 'PENDING';
 
   return (
-    <SafeAreaView style={[dtStyles.root, { backgroundColor: colors.bgCard }]}>
+    <SafeAreaView style={[dtStyles.root, { backgroundColor: colors.bgPrimary }]}>
       {/* Header */}
-      <View style={[dtStyles.header, { borderBottomColor: colors.border }]}>
+      <View style={[dtStyles.header, { borderBottomColor: colors.border, backgroundColor: colors.bgCard }]}>
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={[dtStyles.orderId, { color: colors.textPrimary }]}>{po.poNumber || `PO #${po.id.slice(-6)}`}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <Text style={[dtStyles.orderId, { color: colors.textPrimary }]}>{po.poNumber || `PO #${String(po.id).slice(-6)}`}</Text>
             <View style={[dtStyles.statusBadge, { backgroundColor: badge.bg }]}>
               <Text style={[dtStyles.statusBadgeTxt, { color: badge.color }]}>{badge.label}</Text>
             </View>
@@ -526,24 +539,25 @@ function PurchaseDetail({
       <ScrollView contentContainerStyle={dtStyles.body} showsVerticalScrollIndicator={false}>
         {/* Financial Metrics Summary */}
         <View style={dtStyles.metricsGrid}>
-          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={[dtStyles.metricVal, { color: colors.green }]}>{fmtCur(po.totalAmount)}</Text>
             <Text style={[dtStyles.metricLabel, { color: colors.textMuted }]}>Total Amount</Text>
           </View>
 
-          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={[dtStyles.metricVal, { color: colors.textPrimary }]}>{fmtCur(po.subtotal)}</Text>
             <Text style={[dtStyles.metricLabel, { color: colors.textMuted }]}>Subtotal</Text>
           </View>
 
-          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <View style={[dtStyles.metricBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={[dtStyles.metricVal, { color: colors.purple }]}>{fmtCur(po.gstAmount)}</Text>
             <Text style={[dtStyles.metricLabel, { color: colors.textMuted }]}>GST (18%)</Text>
           </View>
         </View>
 
         {/* Order Details Info */}
-        <View style={[dtStyles.infoCard, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+        <View style={[dtStyles.infoCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          <Text style={[dtStyles.cardHeading, { color: colors.textMuted }]}>PURCHASE ORDER DETAILS</Text>
           <View style={dtStyles.infoRow}>
             <Text style={[dtStyles.infoLabel, { color: colors.textMuted }]}>Order Date</Text>
             <Text style={[dtStyles.infoValue, { color: colors.textPrimary }]}>{fmtDate(po.orderDate || po.createdAt)}</Text>
@@ -559,7 +573,7 @@ function PurchaseDetail({
             </View>
           )}
           {po.supplier?.email && (
-            <View style={dtStyles.infoRow}>
+            <View style={[dtStyles.infoRow, { borderBottomWidth: 0 }]}>
               <Text style={[dtStyles.infoLabel, { color: colors.textMuted }]}>Supplier Email</Text>
               <Text style={[dtStyles.infoValue, { color: colors.textPrimary }]}>{po.supplier.email}</Text>
             </View>
@@ -569,7 +583,7 @@ function PurchaseDetail({
         {/* Action Buttons Bar */}
         <View style={dtStyles.actionBar}>
           {canReceive && (
-            <TouchableOpacity style={[dtStyles.actionPrimaryBtn, { backgroundColor: colors.accent }]} onPress={onReceive}>
+            <TouchableOpacity style={[dtStyles.actionPrimaryBtn, { backgroundColor: colors.accent }]} onPress={onReceive} activeOpacity={0.8}>
               <Feather name="package" size={16} color="#fff" />
               <Text style={dtStyles.actionPrimaryTxt}>Receive Goods</Text>
             </TouchableOpacity>
@@ -579,6 +593,7 @@ function PurchaseDetail({
             <TouchableOpacity
               style={[dtStyles.actionSecondaryBtn, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: '#10b981' }]}
               onPress={() => onUpdateStatus('APPROVED')}
+              activeOpacity={0.8}
             >
               <Feather name="check-circle" size={15} color="#10b981" />
               <Text style={[dtStyles.actionSecondaryTxt, { color: '#10b981' }]}>Approve Order</Text>
@@ -589,6 +604,7 @@ function PurchaseDetail({
             <TouchableOpacity
               style={[dtStyles.actionSecondaryBtn, { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.3)' }]}
               onPress={onCancel}
+              activeOpacity={0.8}
             >
               <Feather name="slash" size={15} color={colors.red} />
               <Text style={[dtStyles.actionSecondaryTxt, { color: colors.red }]}>Cancel Order</Text>
@@ -597,14 +613,14 @@ function PurchaseDetail({
         </View>
 
         {/* Line Items */}
-        <Text style={[dtStyles.sectionTitle, { color: colors.textPrimary }]}>Order Items ({items.length})</Text>
+        <Text style={[dtStyles.sectionTitle, { color: colors.textMuted }]}>Order Items ({items.length})</Text>
         {items.map((it, idx) => {
           const ordered = it.orderedQty || 0;
           const received = it.receivedQty || 0;
           const isComplete = received >= ordered && ordered > 0;
 
           return (
-            <View key={idx} style={[dtStyles.lineItemCard, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+            <View key={idx} style={[dtStyles.lineItemCard, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
               <View style={dtStyles.lineItemHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={[dtStyles.lineItemName, { color: colors.textPrimary }]}>{it.product?.name || 'Product'}</Text>
@@ -630,7 +646,7 @@ function PurchaseDetail({
         })}
 
         {po.notes ? (
-          <View style={[dtStyles.notesBox, { backgroundColor: colors.bgSecondary, borderColor: colors.border }]}>
+          <View style={[dtStyles.notesBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
             <Text style={[dtStyles.notesTitle, { color: colors.textMuted }]}>Notes / Remarks</Text>
             <Text style={[dtStyles.notesContent, { color: colors.textSecondary }]}>{po.notes}</Text>
           </View>
@@ -696,7 +712,6 @@ function PurchaseForm({
     (p.partNumber && p.partNumber.toLowerCase().includes(prodSearch.toLowerCase()))
   );
 
-  // Line item helpers
   const addItem = (product: any) => {
     const existing = form.items.find(it => it.productId === product.id);
     if (existing) {
@@ -746,7 +761,6 @@ function PurchaseForm({
     });
   };
 
-  // Calculations
   const subtotal = form.items.reduce((s, it) => s + (it.quantity * it.unitPrice || 0), 0);
   const gstAmount = subtotal * 0.18;
   const grandTotal = subtotal + gstAmount;
@@ -754,7 +768,7 @@ function PurchaseForm({
   return (
     <SafeAreaView style={[fStyles.root, { backgroundColor: colors.bgPrimary }]}>
       {/* Header */}
-      <View style={[fStyles.header, { borderBottomColor: colors.border }]}>
+      <View style={[fStyles.header, { borderBottomColor: colors.border, backgroundColor: colors.bgCard }]}>
         <TouchableOpacity onPress={onClose} style={fStyles.closeBtn}>
           <Feather name="x" size={22} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -1043,7 +1057,7 @@ function ReceiveGoodsModal({
         <View style={[rcStyles.header, { borderBottomColor: colors.border }]}>
           <View style={{ flex: 1 }}>
             <Text style={[rcStyles.title, { color: colors.textPrimary }]}>Receive Goods</Text>
-            <Text style={[rcStyles.subTitle, { color: colors.textMuted }]}>{order.poNumber || `PO #${order.id.slice(-6)}`}</Text>
+            <Text style={[rcStyles.subTitle, { color: colors.textMuted }]}>{order.poNumber || `PO #${String(order.id).slice(-6)}`}</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={rcStyles.closeBtn}>
             <Feather name="x" size={20} color={colors.textSecondary} />
@@ -1105,159 +1119,171 @@ function ReceiveGoodsModal({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgPrimary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
   },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
-  count: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  title: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  count: { fontSize: 12, marginTop: 2 },
   createBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.accent, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8, elevation: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: Radius.md,
   },
-  filterScrollWrapper: { marginBottom: Spacing.xs },
+  createBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  filterScrollWrapper: { paddingVertical: Spacing.xs },
   filterBar: { paddingHorizontal: Spacing.lg, gap: 8, paddingBottom: 4 },
   filterPill: {
-    paddingHorizontal: 14, paddingVertical: 7,
+    paddingHorizontal: 13, paddingVertical: 6,
     borderRadius: Radius.full, borderWidth: 1,
-    backgroundColor: Colors.bgCard, borderColor: Colors.border,
   },
-  filterPillActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
-  filterPillTxt: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
-  filterPillTxtActive: { color: '#fff', fontWeight: '700' },
+  filterPillActive: {},
+  filterPillTxt: { fontSize: 12, fontWeight: '600' },
   list: { padding: Spacing.lg, paddingBottom: 100 },
   card: {
-    backgroundColor: Colors.bgCard,
     borderRadius: Radius.lg,
-    padding: Spacing.md, marginBottom: 12,
-    borderWidth: 1, borderColor: Colors.border,
+    padding: Spacing.md, marginBottom: 10,
+    borderWidth: 1,
   },
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  poNumber: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary },
-  supplierName: { fontSize: 13, fontWeight: '600', color: Colors.accentLight, marginTop: 2 },
+  poNumber: { fontSize: 15, fontWeight: '800' },
+  supplierName: { fontSize: 13, fontWeight: '600', marginTop: 2 },
   statusBadge: {
-    paddingHorizontal: 8, paddingVertical: 4,
+    paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: Radius.full,
   },
-  statusBadgeTxt: { fontSize: 11, fontWeight: '700' },
-  cardDivider: { height: 1, backgroundColor: Colors.border, marginVertical: Spacing.sm },
+  statusBadgeTxt: { fontSize: 10, fontWeight: '700' },
+  cardDivider: { height: 1, marginVertical: Spacing.sm },
   cardFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardMetaCol: { gap: 2 },
-  metaLabel: { fontSize: 10, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase' },
-  metaValue: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
-  amountValue: { fontSize: 14, fontWeight: '800', color: Colors.green },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText: { fontSize: 15, color: Colors.textSecondary },
+  metaLabel: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  metaValue: { fontSize: 12, fontWeight: '600' },
+  amountValue: { fontSize: 14, fontWeight: '800' },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
+  emptyIconCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+  },
+  emptyText: { fontSize: 15, fontWeight: '700' },
   emptyAddBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.accent, borderRadius: Radius.md,
+    borderRadius: Radius.md,
     paddingHorizontal: 16, paddingVertical: 10, marginTop: 4,
   },
-  emptyAddText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  emptyAddText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   loadingOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.bgPrimary,
   },
 });
 
 const dtStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgCard },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: Spacing.xl, borderBottomWidth: 1, borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
   },
-  orderId: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
+  orderId: { fontSize: 17, fontWeight: '800' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
   statusBadgeTxt: { fontSize: 10, fontWeight: '700' },
-  supplier: { fontSize: 14, fontWeight: '600', color: Colors.accentLight, marginTop: 4 },
+  supplier: { fontSize: 13, fontWeight: '600', marginTop: 3 },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  body: { padding: Spacing.xl, paddingBottom: 40 },
+  body: { padding: Spacing.lg, paddingBottom: 40 },
   metricsGrid: { flexDirection: 'row', gap: 10, marginBottom: Spacing.lg },
   metricBox: {
-    flex: 1, padding: Spacing.md, borderRadius: Radius.md,
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center',
+    flex: 1, padding: Spacing.md, borderRadius: Radius.lg,
+    borderWidth: 1, alignItems: 'center',
   },
-  metricVal: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary },
-  metricLabel: { fontSize: 10, fontWeight: '600', color: Colors.textMuted, marginTop: 3 },
+  metricVal: { fontSize: 14, fontWeight: '800' },
+  metricLabel: { fontSize: 10, fontWeight: '600', marginTop: 3 },
   infoCard: {
     borderRadius: Radius.lg, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.lg, gap: 8,
+    borderWidth: 1, marginBottom: Spacing.lg,
   },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  infoLabel: { fontSize: 12, color: Colors.textMuted },
-  infoValue: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary },
-  actionBar: { flexDirection: 'row', gap: 10, marginBottom: Spacing.xl },
+  cardHeading: {
+    fontSize: 10, fontWeight: '700',
+    letterSpacing: 0.8, marginBottom: Spacing.sm,
+  },
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  infoLabel: { fontSize: 12 },
+  infoValue: { fontSize: 13, fontWeight: '600' },
+  actionBar: { flexDirection: 'row', gap: 10, marginBottom: Spacing.lg },
   actionPrimaryBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: Radius.md, backgroundColor: Colors.accent,
+    paddingVertical: 12, borderRadius: Radius.md,
   },
   actionPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   actionSecondaryBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: Radius.md, borderWidth: 1,
+    paddingVertical: 12, borderRadius: Radius.md, borderWidth: 1,
   },
   actionSecondaryTxt: { fontWeight: '700', fontSize: 13 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary, marginBottom: Spacing.md },
+  sectionTitle: {
+    fontSize: 11, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    marginTop: Spacing.xs, marginBottom: Spacing.sm, paddingLeft: 2,
+  },
   lineItemCard: {
-    borderRadius: Radius.md, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border, marginBottom: 8, gap: 6,
+    borderRadius: Radius.lg, padding: Spacing.md,
+    borderWidth: 1, marginBottom: 8, gap: 6,
   },
   lineItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  lineItemName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
-  lineItemPart: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
-  lineItemPrice: { fontSize: 14, fontWeight: '800', color: Colors.green },
+  lineItemName: { fontSize: 13, fontWeight: '700' },
+  lineItemPart: { fontSize: 11, marginTop: 1 },
+  lineItemPrice: { fontSize: 14, fontWeight: '800' },
   lineItemDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lineItemRate: { fontSize: 12, color: Colors.textSecondary },
+  lineItemRate: { fontSize: 12 },
   progressTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.sm },
   progressTagTxt: { fontSize: 10, fontWeight: '700' },
   notesBox: {
-    borderRadius: Radius.md, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border, marginTop: Spacing.lg,
+    borderRadius: Radius.lg, padding: Spacing.md,
+    borderWidth: 1, marginTop: Spacing.md,
   },
-  notesTitle: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', marginBottom: 4 },
-  notesContent: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  notesTitle: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, marginBottom: 4 },
+  notesContent: { fontSize: 12, lineHeight: 18 },
 });
 
 const fStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bgPrimary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
   },
   closeBtn: { padding: 4 },
-  title: { fontSize: 17, fontWeight: '800', color: Colors.textPrimary },
+  title: { fontSize: 16, fontWeight: '800' },
   saveBtn: {
-    backgroundColor: Colors.accent, paddingHorizontal: 16, paddingVertical: 8,
+    paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: Radius.md, minWidth: 64, alignItems: 'center',
   },
-  saveTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  saveTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   body: { padding: Spacing.lg, gap: Spacing.md },
-  sectionHeader: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, marginTop: Spacing.sm },
+  sectionHeader: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, marginTop: Spacing.xs },
   fieldGroup: { gap: 5 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  fieldLabel: { fontSize: 12, fontWeight: '600' },
   input: {
-    backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5,
     borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 10,
-    color: Colors.textPrimary, fontSize: 14,
+    fontSize: 14,
   },
   textarea: { height: 70, textAlignVertical: 'top' },
   picker: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: Colors.bgCard, borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5,
     borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 12,
   },
-  pickerTxt: { fontSize: 14, color: Colors.textPrimary, flex: 1 },
+  pickerTxt: { fontSize: 14, flex: 1 },
   itemsHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: Spacing.md,
@@ -1271,22 +1297,22 @@ const fStyles = StyleSheet.create({
     borderRadius: Radius.lg, borderWidth: 1.5, borderStyle: 'dashed',
     padding: Spacing.xl, alignItems: 'center', gap: 8,
   },
-  emptyItemsTxt: { fontSize: 13, color: Colors.textMuted },
+  emptyItemsTxt: { fontSize: 13 },
   addFirstItemBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.md,
   },
   addFirstItemTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   itemCard: {
-    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: Radius.lg, borderWidth: 1,
     padding: Spacing.md, gap: Spacing.sm,
   },
   itemCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  itemName: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
-  itemPart: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  itemName: { fontSize: 13, fontWeight: '700' },
+  itemPart: { fontSize: 11, marginTop: 1 },
   itemControlsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   qtyWrapper: { flex: 1.2 },
-  controlLabel: { fontSize: 10, fontWeight: '600', color: Colors.textMuted, marginBottom: 3 },
+  controlLabel: { fontSize: 10, fontWeight: '600', marginBottom: 3 },
   qtyRow: {
     flexDirection: 'row', alignItems: 'center', borderWidth: 1,
     borderRadius: Radius.md, overflow: 'hidden',
@@ -1299,21 +1325,21 @@ const fStyles = StyleSheet.create({
     paddingVertical: 5, fontSize: 13, fontWeight: '600', textAlign: 'center',
   },
   lineTotalWrapper: { flex: 1, alignItems: 'flex-end' },
-  lineTotalTxt: { fontSize: 14, fontWeight: '800', color: Colors.green, marginTop: 6 },
+  lineTotalTxt: { fontSize: 13, fontWeight: '800', marginTop: 6 },
   summaryCard: {
-    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: Radius.lg, borderWidth: 1,
     padding: Spacing.md, gap: 6,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryLabel: { fontSize: 13, color: Colors.textSecondary },
-  summaryVal: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
+  summaryLabel: { fontSize: 13 },
+  summaryVal: { fontSize: 13, fontWeight: '700' },
   summaryDivider: { height: 1, marginVertical: 4 },
-  grandTotalLabel: { fontSize: 15, fontWeight: '800', color: Colors.textPrimary },
-  grandTotalVal: { fontSize: 16, fontWeight: '800', color: Colors.green },
+  grandTotalLabel: { fontSize: 14, fontWeight: '800' },
+  grandTotalVal: { fontSize: 15, fontWeight: '800' },
 
   // Modals
   pickerModal: {
-    flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.65)',
     padding: Spacing.xl,
   },
   pickerSheet: { borderRadius: Radius.xl, maxHeight: '80%', overflow: 'hidden' },
@@ -1321,7 +1347,7 @@ const fStyles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     padding: Spacing.lg, borderBottomWidth: 1,
   },
-  pickerModalTitle: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary },
+  pickerModalTitle: { fontSize: 16, fontWeight: '800' },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     margin: Spacing.md, borderRadius: Radius.md,
@@ -1337,14 +1363,14 @@ const fStyles = StyleSheet.create({
 });
 
 const rcStyles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.65)' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   handle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginTop: 10 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     padding: Spacing.xl, borderBottomWidth: 1,
   },
-  title: { fontSize: 17, fontWeight: '800' },
+  title: { fontSize: 16, fontWeight: '800' },
   subTitle: { fontSize: 12, marginTop: 2 },
   closeBtn: { padding: 4 },
   topActions: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm },

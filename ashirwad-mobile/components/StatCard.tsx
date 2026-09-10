@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { MotiPressable } from 'moti/interactions';
 import { useTheme } from '../store/themeStore';
-import { Radius, Spacing } from '../constants/Colors';
+import { Radius, Spacing, Shadows } from '../constants/Colors';
 
 interface StatCardProps {
   label: string;
@@ -12,10 +12,21 @@ interface StatCardProps {
   bgColor: string;
   sub?: string;
   onPress?: () => void;
+  width?: string | number;
 }
 
-export default function StatCard({ label, value, icon, color, bgColor, sub, onPress }: StatCardProps) {
+export default function StatCard({
+  label,
+  value,
+  icon,
+  color,
+  bgColor,
+  sub,
+  onPress,
+  width = '48%',
+}: StatCardProps) {
   const { colors, isDark } = useTheme();
+
   return (
     <MotiPressable
       animate={useMemo(
@@ -30,46 +41,82 @@ export default function StatCard({ label, value, icon, color, bgColor, sub, onPr
       )}
       onPress={onPress}
       style={{
-        width: '48%',
+        width: width as any,
         backgroundColor: colors.bgCard,
         borderRadius: Radius.lg,
-        padding: Spacing.md,
+        padding: Spacing.md + 2,
         borderWidth: 1,
         borderColor: colors.border,
-        minHeight: 120,
+        minHeight: 124,
         justifyContent: 'space-between',
-        // Premium card styling
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: isDark ? 0.25 : 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        ...(isDark ? Shadows.md : Shadows.sm),
       }}
     >
-      <View>
-        <View style={{
-          width: 38, height: 38, borderRadius: Radius.md,
-          backgroundColor: bgColor,
-          alignItems: 'center', justifyContent: 'center',
-          marginBottom: Spacing.sm,
-        }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: Radius.md,
+            backgroundColor: bgColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.06)',
+          }}
+        >
           {icon}
         </View>
-        <Text style={{ fontSize: 20, fontWeight: '800', letterSpacing: -0.5, color: colors.textPrimary }}>
-          {value}
-        </Text>
+
+        {sub ? (
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: Radius.full,
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: '600',
+                color: colors.textMuted,
+              }}
+              numberOfLines={1}
+            >
+              {sub}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      <View style={{ marginTop: 4 }}>
-        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }} numberOfLines={1}>
+      <View style={{ marginTop: Spacing.sm }}>
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: '800',
+            letterSpacing: -0.6,
+            color: colors.textPrimary,
+          }}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <Text
+          style={{
+            fontSize: 11.5,
+            color: colors.textSecondary,
+            fontWeight: '600',
+            marginTop: 2,
+            letterSpacing: 0.2,
+          }}
+          numberOfLines={1}
+        >
           {label}
         </Text>
-        {sub ? (
-          <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 1 }} numberOfLines={1}>
-            {sub}
-          </Text>
-        ) : null}
       </View>
     </MotiPressable>
   );
 }
+
