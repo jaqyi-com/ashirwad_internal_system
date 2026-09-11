@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ashirwad IMS",
     "slug": "ashirwad-ims",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "scheme": "ashirwad",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.ashirwad.ims"
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",

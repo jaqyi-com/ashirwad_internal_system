@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
-import { MotiPressable } from 'moti/interactions';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../store/themeStore';
-import { Radius, Spacing, Shadows } from '../constants/Colors';
+import { Radius, Shadows } from '../constants/Colors';
 
 interface StatCardProps {
   label: string;
@@ -28,61 +27,43 @@ export default function StatCard({
   const { colors, isDark } = useTheme();
 
   return (
-    <MotiPressable
-      animate={useMemo(
-        () =>
-          ({ pressed }) => {
-            'worklet';
-            return {
-              scale: pressed ? 0.96 : 1,
-            };
-          },
-        []
-      )}
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.75 : 1}
       onPress={onPress}
-      style={{
-        width: width as any,
-        backgroundColor: colors.bgCard,
-        borderRadius: Radius.lg,
-        padding: Spacing.md + 2,
-        borderWidth: 1,
-        borderColor: colors.border,
-        minHeight: 124,
-        justifyContent: 'space-between',
-        ...(isDark ? Shadows.md : Shadows.sm),
-      }}
+      style={[
+        styles.card,
+        {
+          width: width as any,
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+        isDark ? Shadows.sm : {},
+      ]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Top row: Icon + Sub badge */}
+      <View style={styles.topRow}>
         <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: Radius.md,
-            backgroundColor: bgColor,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.06)',
-          }}
+          style={[
+            styles.iconBox,
+            {
+              backgroundColor: bgColor,
+            },
+          ]}
         >
           {icon}
         </View>
 
         {sub ? (
           <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: Radius.full,
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
-            }}
+            style={[
+              styles.subBadge,
+              {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+              },
+            ]}
           >
             <Text
-              style={{
-                fontSize: 10,
-                fontWeight: '600',
-                color: colors.textMuted,
-              }}
+              style={[styles.subText, { color: colors.textMuted }]}
               numberOfLines={1}
             >
               {sub}
@@ -91,32 +72,73 @@ export default function StatCard({
         ) : null}
       </View>
 
-      <View style={{ marginTop: Spacing.sm }}>
+      {/* Bottom info: Large value + 2-line label */}
+      <View style={styles.content}>
         <Text
-          style={{
-            fontSize: 22,
-            fontWeight: '800',
-            letterSpacing: -0.6,
-            color: colors.textPrimary,
-          }}
+          style={[styles.value, { color: colors.textPrimary }]}
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
         >
           {value}
         </Text>
         <Text
-          style={{
-            fontSize: 11.5,
-            color: colors.textSecondary,
-            fontWeight: '600',
-            marginTop: 2,
-            letterSpacing: 0.2,
-          }}
-          numberOfLines={1}
+          style={[styles.label, { color: colors.textSecondary }]}
+          numberOfLines={2}
         >
           {label}
         </Text>
       </View>
-    </MotiPressable>
+    </TouchableOpacity>
   );
 }
 
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    minHeight: 116,
+    justifyContent: 'space-between',
+    marginBottom: 0,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  subBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    maxWidth: '55%',
+  },
+  subText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  content: {
+    marginTop: 10,
+  },
+  value: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+});

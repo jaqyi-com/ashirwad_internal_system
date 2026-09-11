@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
-import { View, Text, Image } from 'react-native';
+import React from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { MotiPressable } from 'moti/interactions';
 import { useTheme } from '../store/themeStore';
 import { Radius, Spacing, Shadows } from '../constants/Colors';
 
@@ -32,66 +31,45 @@ export default function ListItem({
   rightSubLabel,
   onPress,
   showChevron = true,
-  index = 0,
 }: ListItemProps) {
   const { colors, isDark } = useTheme();
   const bColor = badgeColor ?? colors.green;
 
   return (
-    <MotiPressable
-      from={{ opacity: 0, translateY: 12 }}
-      animate={useMemo(
-        () =>
-          ({ pressed }) => {
-            'worklet';
-            return {
-              opacity: 1,
-              translateY: 0,
-              scale: pressed ? 0.98 : 1,
-            };
-          },
-        []
-      )}
-      transition={{ type: 'timing', duration: 250, delay: Math.min(index * 35, 300) }}
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.75 : 1}
       onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.bgCard,
-        borderRadius: Radius.lg,
-        padding: Spacing.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: Spacing.sm,
-        ...(isDark ? Shadows.sm : {}),
-      }}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.border,
+        },
+        isDark ? Shadows.sm : {},
+      ]}
     >
       {/* Left thumbnail / Icon capsule */}
-      <View style={{ marginRight: Spacing.md, flexShrink: 0 }}>
+      <View style={styles.leftBox}>
         {imageUri ? (
           <Image
             source={{ uri: imageUri }}
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: Radius.md,
-              backgroundColor: colors.bgSecondary,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
+            style={[
+              styles.image,
+              {
+                backgroundColor: colors.bgSecondary,
+                borderColor: colors.border,
+              },
+            ]}
           />
         ) : (
           <View
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: Radius.md,
-              backgroundColor: colors.bgSecondary,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
+            style={[
+              styles.iconPlaceholderBox,
+              {
+                backgroundColor: colors.bgSecondary,
+                borderColor: colors.border,
+              },
+            ]}
           >
             {iconPlaceholder ?? (
               <Feather name="package" size={20} color={colors.accentLight} />
@@ -101,25 +79,16 @@ export default function ListItem({
       </View>
 
       {/* Middle: Title & Subtitle */}
-      <View style={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+      <View style={styles.middleBox}>
         <Text
-          style={{
-            fontSize: 14.5,
-            fontWeight: '700',
-            color: colors.textPrimary,
-            letterSpacing: -0.2,
-          }}
+          style={[styles.title, { color: colors.textPrimary }]}
           numberOfLines={1}
         >
           {title}
         </Text>
         {subtitle ? (
           <Text
-            style={{
-              fontSize: 12,
-              color: colors.textSecondary,
-              marginTop: 2.5,
-            }}
+            style={[styles.subtitle, { color: colors.textSecondary }]}
             numberOfLines={1}
           >
             {subtitle}
@@ -128,24 +97,11 @@ export default function ListItem({
       </View>
 
       {/* Right: Badge, Value & Chevron */}
-      <View
-        style={{
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          flexShrink: 0,
-          marginLeft: Spacing.sm,
-          gap: 3,
-        }}
-      >
+      <View style={styles.rightBox}>
         {rightLabel ? (
           <Text
-            style={{
-              fontSize: 14,
-              fontWeight: '700',
-              color: colors.textPrimary,
-              letterSpacing: -0.2,
-            }}
+            style={[styles.rightLabel, { color: colors.textPrimary }]}
+            numberOfLines={1}
           >
             {rightLabel}
           </Text>
@@ -153,41 +109,114 @@ export default function ListItem({
 
         {badge ? (
           <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 2.5,
-              borderRadius: Radius.full,
-              backgroundColor: badgeBg,
-              borderWidth: 1,
-              borderColor: `${bColor}30`,
-            }}
+            style={[
+              styles.badgeContainer,
+              {
+                backgroundColor: badgeBg,
+                borderColor: `${bColor}30`,
+              },
+            ]}
           >
             <Text
-              style={{
-                fontSize: 10.5,
-                fontWeight: '700',
-                color: bColor,
-                textTransform: 'uppercase',
-                letterSpacing: 0.3,
-              }}
+              style={[
+                styles.badgeText,
+                { color: bColor },
+              ]}
+              numberOfLines={1}
             >
               {badge}
             </Text>
           </View>
         ) : rightSubLabel ? (
-          <Text style={{ fontSize: 11, color: colors.textMuted }}>{rightSubLabel}</Text>
+          <Text style={[styles.rightSubLabel, { color: colors.textMuted }]} numberOfLines={1}>
+            {rightSubLabel}
+          </Text>
         ) : null}
-      </View>
 
-      {showChevron && (
-        <Feather
-          name="chevron-right"
-          size={16}
-          color={colors.textMuted}
-          style={{ marginLeft: 6 }}
-        />
-      )}
-    </MotiPressable>
+        {showChevron && (
+          <Feather
+            name="chevron-right"
+            size={16}
+            color={colors.textMuted}
+            style={styles.chevron}
+          />
+        )}
+      </View>
+    </TouchableOpacity>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  leftBox: {
+    marginRight: Spacing.md,
+    flexShrink: 0,
+  },
+  image: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  iconPlaceholderBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  middleBox: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    paddingRight: 6,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  rightBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+    gap: 6,
+  },
+  rightLabel: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  badgeContainer: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  rightSubLabel: {
+    fontSize: 11,
+  },
+  chevron: {
+    marginLeft: 2,
+  },
+});

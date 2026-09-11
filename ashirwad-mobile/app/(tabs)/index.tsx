@@ -289,6 +289,7 @@ export default function DashboardScreen() {
               color={s.color}
               bgColor={s.bgColor}
               icon={s.icon}
+              width="48.5%"
             />
           ))}
         </View>

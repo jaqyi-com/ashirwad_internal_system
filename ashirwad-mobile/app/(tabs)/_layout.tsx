@@ -9,23 +9,23 @@ function TabIcon({ name, label, focused }: { name: any; label: string; focused: 
   const { colors, isDark } = useTheme();
 
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', minWidth: 54, paddingTop: 4 }}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', minWidth: 54 }}>
       <View
         style={{
-          width: 44,
-          height: 30,
+          width: 42,
+          height: 28,
           borderRadius: Radius.full,
           backgroundColor: focused ? colors.accentGlow : 'transparent',
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 1,
           borderColor: focused ? (isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.2)') : 'transparent',
-          marginBottom: 3,
+          marginBottom: 2,
         }}
       >
         <Feather
           name={name}
-          size={19}
+          size={18}
           color={focused ? colors.accentLight : colors.textMuted}
           strokeWidth={focused ? 2.4 : 1.8}
         />
@@ -48,8 +48,8 @@ function TabIcon({ name, label, focused }: { name: any; label: string; focused: 
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 16);
-  const tabBarHeight = 58 + bottomInset;
+  const bottomInset = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'ios' ? 24 : 12);
+  const tabBarHeight = 56 + bottomInset;
 
   return (
     <Tabs
@@ -60,8 +60,8 @@ export default function TabsLayout() {
           borderTopColor: colors.tabBarBorder,
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: bottomInset + 2,
-          paddingTop: 4,
+          paddingBottom: bottomInset,
+          paddingTop: 6,
           elevation: 24,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
