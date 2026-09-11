@@ -1,6 +1,7 @@
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileBottomNav from './MobileBottomNav';
+import AIChatbot from '../Chatbot/AIChatbot';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
@@ -57,6 +58,9 @@ export default function Layout() {
 
       {/* Bottom navigation — mobile only */}
       <MobileBottomNav />
+
+      {/* Floating AI Chatbot Assistant */}
+      <AIChatbot />
     </div>
   );
 }

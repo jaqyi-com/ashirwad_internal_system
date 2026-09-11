@@ -24,6 +24,7 @@ const attendanceRoutes = require('./routes/attendance.routes');
 const publicRoutes     = require('./routes/public.routes');
 const whatsappRoutes   = require('./routes/whatsapp.routes');
 const ticketRoutes     = require('./routes/ticket.routes');
+const chatRoutes       = require('./routes/chat.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 
@@ -79,6 +80,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/public',    publicRoutes);   // No auth — QR scan endpoint
 app.use('/api/whatsapp',  whatsappRoutes); // No auth — Twilio webhook
 app.use('/api/tickets',   ticketRoutes);
+app.use('/api/chat',      chatRoutes);
 
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));

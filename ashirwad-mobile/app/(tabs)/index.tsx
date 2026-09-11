@@ -14,6 +14,7 @@ import { useAuth } from '../../store/authStore';
 import { useTheme } from '../../store/themeStore';
 import StatCard from '../../components/StatCard';
 import ListItem from '../../components/ListItem';
+import ChatbotModal from '../../components/ChatbotModal';
 import { Radius, Spacing, Shadows } from '../../constants/Colors';
 
 const fmt = (n: number) => n?.toLocaleString('en-IN') ?? '0';
@@ -26,6 +27,7 @@ export default function DashboardScreen() {
   const [data, setData]             = useState<any>(null);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [chatbotVisible, setChatbotVisible] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -123,18 +125,37 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/more')}
-          style={[styles.avatarCapsule, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.avatarCircle, { backgroundColor: colors.accentGlow }]}>
-            <Text style={[styles.avatarText, { color: colors.accentLight }]}>
-              {(user?.name ?? 'U')[0].toUpperCase()}
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={14} color={colors.textMuted} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            onPress={() => setChatbotVisible(true)}
+            style={[
+              styles.aiTopBtn,
+              { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : '#ede9fe', borderColor: isDark ? 'rgba(99,102,241,0.35)' : '#c7d2fe' },
+            ]}
+            activeOpacity={0.75}
+          >
+            <LinearGradient
+              colors={['#6366f1', '#8b5cf6']}
+              style={styles.aiTopIconCircle}
+            >
+              <Feather name="cpu" size={13} color="#ffffff" />
+            </LinearGradient>
+            <Text style={[styles.aiTopText, { color: colors.accentLight }]}>Ask AI</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/more')}
+            style={[styles.avatarCapsule, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.avatarCircle, { backgroundColor: colors.accentGlow }]}>
+              <Text style={[styles.avatarText, { color: colors.accentLight }]}>
+                {(user?.name ?? 'U')[0].toUpperCase()}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -186,6 +207,47 @@ export default function DashboardScreen() {
             </View>
           </LinearGradient>
         </MotiView>
+
+        {/* ── AI Inventory Assistant Interactive Banner ── */}
+        <TouchableOpacity
+          onPress={() => setChatbotVisible(true)}
+          activeOpacity={0.85}
+          style={{ marginTop: Spacing.sm, marginBottom: Spacing.xs }}
+        >
+          <LinearGradient
+            colors={isDark ? ['#1e1b4b', '#131322'] : ['#ede9fe', '#f8fafc']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              styles.aiBanner,
+              { borderColor: isDark ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.25)' },
+              Shadows.sm,
+            ]}
+          >
+            <View style={styles.aiBannerLeft}>
+              <LinearGradient
+                colors={['#6366f1', '#8b5cf6']}
+                style={styles.aiBannerIconBox}
+              >
+                <Feather name="cpu" size={18} color="#ffffff" />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.aiBannerTitle, { color: colors.textPrimary }]}>
+                    Ashirwad AI Assistant
+                  </Text>
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>ASK INVENTORY</Text>
+                  </View>
+                </View>
+                <Text style={[styles.aiBannerSub, { color: colors.textSecondary }]}>
+                  Instant stock checks, rates, locations, or sales (English & Hindi)
+                </Text>
+              </View>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.accentLight} />
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* ── Quick Actions ── */}
         <View style={styles.sectionHeaderRow}>
@@ -285,6 +347,13 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* ── AI Chatbot Modal ── */}
+      <ChatbotModal
+        visible={chatbotVisible}
+        onClose={() => setChatbotVisible(false)}
+        onSelectProduct={(term) => router.push({ pathname: '/(tabs)/products', params: { search: term } })}
+      />
     </SafeAreaView>
   );
 }
@@ -453,6 +522,68 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 12,
     marginBottom: Spacing.md,
+  },
+  aiTopBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  aiTopIconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTopText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  aiBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+  },
+  aiBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  aiBannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  aiBadge: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: Radius.full,
+  },
+  aiBadgeText: {
+    color: '#818cf8',
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  aiBannerSub: {
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
   },
 });
 
